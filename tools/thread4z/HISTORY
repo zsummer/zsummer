@@ -1,0 +1,22 @@
+HISTORY for Thread4z
+
+/*
+ * UPDATES
+ *
+ * VERSION 0.1.0 <DATE: 2010.9.26>
+ * 	packet CThread, CLock under the Windows.
+ * 
+ * VERSION 0.2.0 <DATE: 2011.3.19>
+ * 	packet CThread, CLock under the Linux.
+ * 	packet CSem under the Windows and Linux.
+ * 
+ * VERSION 0.2.1 <DATE: 2012.4.27>
+ * 	packet Atom under the Windows and Linux.
+ *
+ * VERSION 0.2.2 <DATE: 2012.12.21>
+ * 	change CLock detail that set mutex's attribute 'PTHREAD_MUTEX_RECURSIVE' under the linux.
+ *
+ *
+ */
+   
+(end of HISTORY)
