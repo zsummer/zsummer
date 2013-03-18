@@ -15,18 +15,14 @@
 
 using namespace std;
 
+#define TEMPMACRO(x)\
+	{std::stringstream os;os << x;std::cout << os.str() << endl;}
 
-void TestUtilityColorText()
-{
-	{
-		PUTN(zsummer::utility::GetVersion());
-		PUTR(zsummer::utility::GetVersionLog());
-		PUTG(zsummer::utility::GetUtilityVersion());
-		PUTB(zsummer::utility::GetUtilityVersionLog());
-		PUTY("YELLOW");
-		PUTV("VIOLET");
-	}
-}
+#define PUTN(x) TEMPMACRO(x)
+#define PUTB(x) TEMPMACRO(x)
+#define PUTR(x) TEMPMACRO(x)
+
+
 
 void TestUtilityTime()
 {
@@ -45,71 +41,6 @@ void TestUtilityTime()
 		PUTN( "time_t now =" << now );
 		PUTN( "string time = "<< zsummer::utility::TimeToString(now) );
 	}
-
-	{
-		struct tm tm1;
-		struct tm tm2;
-		memset(&tm1, 0, sizeof(tm1));
-		tm1.tm_year = 2012-1900;
-		tm1.tm_mon = 12-1;
-		tm1.tm_mday = 31; //2012.12.31. monday1,
-		tm1.tm_hour = 16;
-		memcpy(&tm2, &tm1, sizeof(tm1));
-		tm2.tm_hour=23;
-		if (zsummer::utility::isTimeSameDay(zsummer::utility::TmToTime(&tm1), zsummer::utility::TmToTime(&tm2)))
-		{
-			PUTB("isTimeSameDay OK");
-		}
-		else
-		{
-			PUTR("isTimeSameDay ERR");
-		}
-	}
-}
-
-void TestUtilityXml()
-{
-	std::string str = "<!--   first -->\n"
-		"<sre><!-- haha--> 324234               </sre>";
-	int n = 0;
-	if (zsummer::utility::GetXmlParam(str, "sre", n) && n == 324234)
-	{
-		PUTB("GetXmlParam OK");
-	}
-	else
-	{
-		PUTV("GetXmlParam ERROR");
-	}
-}
-
-void TestUtilityOther()
-{
-	{
-		PUTN( zsummer::utility::GetInstancePath() );
-		PUTN( zsummer::utility::GetInstanceName() );
-	}
-
-	{
-		char buf[100] = {"splite the  string by blank space, not ignore muti segmentation."};
-		PUTN( buf );
-		std::vector<std::string> v;
-		zsummer::utility::SplitString(buf, " ", v);
-		for (unsigned int i=0; i<v.size(); i++)
-		{
-			PUTN( v[i]);
-		}
-		PUTN("\n");
-
-		char buff[100] = {"splite$$the string$$by$$blank space$$$$$ ignore muti segmentation."};
-		PUTB( buff );
-		zsummer::utility::SplitString(buff, "$$", v, true);
-		for (unsigned int i=0; i<v.size(); i++)
-		{
-			PUTB(v[i]);
-		}
-		PUTB( "\n");
-	}
-
 }
 
 
@@ -184,20 +115,8 @@ void TestObjectPool()
 }
 int main(int argc, char* argv[])
 {
-
-
-	TestUtilityColorText();
 	TestUtilityTime();
-	TestUtilityXml();
-	TestUtilityOther();
-
 	TestObjectPool();
-
-
-
-
-
-
 	return 0;
 }
 

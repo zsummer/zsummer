@@ -65,7 +65,7 @@ namespace zsummer
 	//对象池
 
 /*
-i3-350, 5gDRRIII, VS2005 release 1000000 禁止优化,
+i3-350M, 5gDRRIII, VS2005 release 1000000 禁止优化,
 	CObject1 size: 204800
 	CObject2 size: 50
 	new  CObject1 : 422 ms,   per : 2369000 n/s
@@ -73,7 +73,7 @@ i3-350, 5gDRRIII, VS2005 release 1000000 禁止优化,
 	new  CObject2 : 125 ms,   per : 8000000 n/s
 	pool CObject2 : 47 ms,   per : 21276000 n/s
 
-i3-350, 5gDRRIII, g++4.4.4  1000000
+i3-350M, 5gDRRIII, g++4.4.4  1000000
 	CObject1 size: 204800
 	CObject2 size: 50
 	new  CObject1 : 108 ms,   per : 9259000 n/s 
