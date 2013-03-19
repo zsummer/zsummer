@@ -75,13 +75,7 @@ struct tagRegister
 	};
 };
 
-enum LINK_STATUS
-{
-	LS_NORMAL,
-	LS_ESTABLISHED,
-	LS_WAITCLOSE,
-	LS_WAITCLEAR,
-};
+
 enum POST_COM_KEY
 {
 	PCK_EPOLL_EXIT = 1,

@@ -65,13 +65,11 @@ CIOServer::~CIOServer()
 bool CIOServer::Start(IIOServerCallback *cb)
 {
 	m_cb = cb;
-
 	if (m_epoll != 0)
 	{
 		LCF("ERR: epoll is create !");
 		return false;
 	}
-
 	m_epoll = epoll_create(200);
 	if (m_epoll == -1)
 	{
@@ -162,7 +160,7 @@ void CIOServer::Run()
 				{
 					if (iter->first == PCK_EPOLL_EXIT)
 					{
-						LCD("INFO: epoll safe close");
+						LCD("INFO: epoll recv exit event");
 						bRuning = false;
 						continue;
 					}
@@ -194,23 +192,28 @@ void CIOServer::Run()
 					pKey->OnEPOLLMessage(false);
 				}
 			}
-			else if (pReg->_type == tagRegister::REG_RECV 
-				|| pReg->_type == tagRegister::REG_SEND
-				|| pReg->_type == tagRegister::REG_CONNECT)
+			else
 			{
+				if    (pReg->_type != tagRegister::REG_RECV 
+					&& pReg->_type != tagRegister::REG_SEND
+					&& pReg->_type != tagRegister::REG_CONNECT)
+				{
+					LCE("check register event type failed !!  type=" << pReg->_type);
+					continue;
+				}
+
 				CTcpSocket *pKey = (CTcpSocket *) pReg->_ptr;
 				pKey->OnEPOLLMessage(pReg->_type, eventflag);
 			}
 		}
-
-
 
 		if (!bRuning)
 		{
 			break;
 		}
 	}
-	LCD("INFO: epoll_wait break");
+
+	LCD("INFO: epoll loop exit");
 }
 
 
