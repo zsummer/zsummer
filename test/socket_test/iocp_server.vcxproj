@@ -82,6 +82,10 @@
     <ClInclude Include="..\..\tools\log4z\log4z.h" />
     <ClInclude Include="..\..\tools\thread4z\thread.h" />
     <ClInclude Include="..\..\utility\utility.h" />
+    <ClInclude Include="Client.h" />
+    <ClInclude Include="header.h" />
+    <ClInclude Include="IOServer.h" />
+    <ClInclude Include="Schedule.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\network\iocp\iocp.cpp" />
@@ -91,7 +95,10 @@
     <ClCompile Include="..\..\tools\log4z\log4z.cpp" />
     <ClCompile Include="..\..\tools\thread4z\thread.cpp" />
     <ClCompile Include="..\..\utility\utility.cpp" />
-    <ClCompile Include="socket_server.cpp" />
+    <ClCompile Include="Client.cpp" />
+    <ClCompile Include="IOServer.cpp" />
+    <ClCompile Include="Schedule.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

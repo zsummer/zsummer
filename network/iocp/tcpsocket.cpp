@@ -37,7 +37,7 @@
 #include "public.h"
 #include "tcpsocket.h"
 #include "iocp.h"
-
+using namespace zsummer;
 
 ITcpSocket * zsummer::network::CreateTcpSocket()
 {

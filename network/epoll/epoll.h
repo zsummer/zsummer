@@ -1,38 +1,38 @@
 /*
- * ZSUMMER License
- * -----------
- * 
- * ZSUMMER is licensed under the terms of the MIT license reproduced below.
- * This means that ZSUMMER is free software and can be used for both academic
- * and commercial purposes at absolutely no cost.
- * 
- * 
- * ===============================================================================
- * 
- * Copyright (C) 2012 YaweiZhang <yawei_zhang@foxmail.com>.
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- * 
- * ===============================================================================
- * 
- * (end of COPYRIGHT)
- */
+* ZSUMMER License
+* -----------
+* 
+* ZSUMMER is licensed under the terms of the MIT license reproduced below.
+* This means that ZSUMMER is free software and can be used for both academic
+* and commercial purposes at absolutely no cost.
+* 
+* 
+* ===============================================================================
+* 
+* Copyright (C) 2012 YaweiZhang <yawei_zhang@foxmail.com>.
+* 
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* 
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+* THE SOFTWARE.
+* 
+* ===============================================================================
+* 
+* (end of COPYRIGHT)
+*/
 
 #ifndef _ZSUMMER_EPOLL_H_
 #define _ZSUMMER_EPOLL_H_
@@ -51,31 +51,32 @@
 *  vmware 虚拟机 23000个连接 每个连接平均1.5s发送一个200字节的数据 并对echo数据校验, 稳定.  27.0%CPU 其中us0.8%, %0.3hi %11.1si %2.1sy 
 *
 */
-
-typedef std::vector<std::pair<int, void*> > MsgVct;
-class CIOServer: public IIOServer
+namespace zsummer
 {
-public:
-	CIOServer();
-	virtual ~CIOServer();
-	virtual bool Start(IIOServerCallback *cb);
-	virtual void Run();
-	virtual bool Stop();
+	typedef std::vector<std::pair<int, void*> > MsgVct;
+	class CIOServer: public IIOServer
+	{
+	public:
+		CIOServer();
+		virtual ~CIOServer();
+		virtual bool Start(IIOServerCallback *cb);
+		virtual void Run();
+		virtual bool Stop();
 
-	virtual void Post(void *pUser);
-	void PostMsg(POST_COM_KEY pck, void * ptr); 
-public:
-	int	m_epoll;
-	IIOServerCallback	* m_cb;
+		virtual void Post(void *pUser);
+		void PostMsg(POST_COM_KEY pck, void * ptr); 
+	public:
+		int	m_epoll;
+		IIOServerCallback	* m_cb;
 
-	//线程消息
-	int		m_sockpair[2];
-	tagRegister m_recv;
-	MsgVct	m_msgs;
-	CLock	m_msglock;
-};
+		//线程消息
+		int		m_sockpair[2];
+		tagRegister m_recv;
+		MsgVct	m_msgs;
+		CLock	m_msglock;
+	};
 
-
+}
 
 
 

@@ -37,7 +37,7 @@
 #include "iocp.h"
 #include "tcpaccept.h"
 #include "tcpsocket.h"
-
+using namespace zsummer;
 
 
 /*

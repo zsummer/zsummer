@@ -33,80 +33,73 @@
  * 
  * (end of COPYRIGHT)
  */
-#ifndef _ZSUMMER_TCPACCEPT_H_
-#define _ZSUMMER_TCPACCEPT_H_
 
-#include "public.h"
-namespace zsummer
+
+#include "Schedule.h"
+
+#include "IOServer.h"
+
+CSchedule::CSchedule()
 {
-	using namespace zsummer::network;
-
-	class CTcpAccept : public ITcpAccept
-	{
-	public:
-		CTcpAccept();
-		virtual ~CTcpAccept();
-		virtual bool BindIOServer(IIOServer * ios);
-		virtual bool SetCallbck(ITcpAcceptCallback * cb);
-		virtual bool OpenAccept(const char * ip, unsigned short port);
-		// 	virtual bool Listen(const char * ip, unsigned short port);
-		// 	virtual bool DoAccept();
-
-		virtual bool OnIOCPMessage(BOOL bSuccess);
-		virtual bool Close();
-		void OnClear();
-
-		//config
-		IIOServer			*m_ios;
-		ITcpAcceptCallback  *m_cb;
-		std::string		m_ip;
-		short			m_port;
-		//listen
-		SOCKET			m_server;
-		SOCKADDR_IN		m_addr;
-
-		//client
-		SOCKET m_socket;
-		char m_recvBuf[200];
-		DWORD m_recvLen;
-		tagReqHandle m_handle;
-
-		//status
-		int m_nAcceptCount;
-		int m_nLinkStatus;
-	};
-
+	m_iCurProcess = 0;
 }
 
+void CSchedule::Start()
+{
+	for (int i=0; i< 2; i++)
+	{
+		CIOServer * p = new CIOServer;
+		if (p->Start())
+		{
+			m_process.push_back(p);
+		}
+	}
+	m_ios = CreateIOServer();
+	if (!m_ios->Start(this))
+	{
+		LOGE("manager start fail!");
+		return;
+	}
 
+	m_accept = CreateTcpAccept();
+	m_accept->SetCallbck(this);
+	m_accept->BindIOServer(m_ios);
+	m_accept->OpenAccept("0.0.0.0", 81);
+	CThread::Start();
+}
+void CSchedule::Stop()
+{
+	m_ios->Stop();
+}
+void CSchedule::Run()
+{
+	m_ios->Run();
+}
+bool CSchedule::OnStop()
+{
+	return true;
+}
 
+bool CSchedule::OnMsg(void *pUser)
+{
+	return true;
+}
 
+bool CSchedule::OnAccept(ITcpSocket * s)
+{
+	//LOGI("OnAccept one link ");
+	m_process[m_iCurProcess]->Post((void *) s);
+	m_iCurProcess++;
+	m_iCurProcess = m_iCurProcess%(int)m_process.size();
+	g_nTotalLinked ++;
+	return true;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#endif
-
-
-
-
-
-
-
-
-
-
+bool CSchedule::OnClose()
+{
+	LOGD("accept socket do close");
+	DestroyTcpAccept(m_accept);
+	Stop();
+	return true;
+}
 

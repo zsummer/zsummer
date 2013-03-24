@@ -37,7 +37,7 @@
 #include "tcpsocket.h"
 #include "epoll.h"
 
-
+using namespace zsummer;
 
 
 zsummer::network::ITcpAccept * zsummer::network::CreateTcpAccept()
@@ -137,6 +137,7 @@ bool CTcpAccept::OpenAccept(const char * ip, unsigned short port)
 		LCF("ERR: epoll ctl  accept err!  errno=" << strerror(errno));
 		return false;
 	}
+	return true;
 }
 
 bool CTcpAccept::OnEPOLLMessage(bool bSuccess)

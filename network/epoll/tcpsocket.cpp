@@ -35,9 +35,8 @@
  */
 
 #include "tcpsocket.h"
-
 #include "epoll.h"
-
+using namespace zsummer;
 
 zsummer::network::ITcpSocket * zsummer::network::CreateTcpSocket()
 {

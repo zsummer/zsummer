@@ -36,7 +36,7 @@
 
 #include "public.h"
 //init socket env
-CInitWSASocketEnv appInitSocket;
+zsummer::CInitWSASocketEnv appInitSocket;
 LoggerId g_coreID;
 
 #pragma comment(lib, "Mswsock")
@@ -44,5 +44,19 @@ LoggerId g_coreID;
 #pragma comment(lib, "shlwapi")
 #pragma comment(lib, "psapi")
 
-
+zsummer::CInitWSASocketEnv::CInitWSASocketEnv()
+{
+	WORD version = MAKEWORD(2,2);
+	WSADATA d;
+	if (WSAStartup(version, &d) != 0)
+	{
+		assert(0);
+	}
+	g_coreID = zsummer::log4z::ILog4zManager::GetInstance()->DynamicCreateLogger("", "NetWork");
+	assert(g_coreID != -1);
+}
+zsummer::CInitWSASocketEnv::~CInitWSASocketEnv()
+{
+	WSACleanup();
+}
 

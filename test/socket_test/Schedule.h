@@ -33,80 +33,29 @@
  * 
  * (end of COPYRIGHT)
  */
-#ifndef _ZSUMMER_TCPACCEPT_H_
-#define _ZSUMMER_TCPACCEPT_H_
 
-#include "public.h"
-namespace zsummer
+#ifndef ZSUMMER_SCHEDULE_H_
+#define ZSUMMER_SCHEDULE_H_
+#include "header.h"
+class CIOServer;
+class CSchedule :public ITcpAcceptCallback, public IIOServerCallback, public CThread
 {
-	using namespace zsummer::network;
-
-	class CTcpAccept : public ITcpAccept
-	{
-	public:
-		CTcpAccept();
-		virtual ~CTcpAccept();
-		virtual bool BindIOServer(IIOServer * ios);
-		virtual bool SetCallbck(ITcpAcceptCallback * cb);
-		virtual bool OpenAccept(const char * ip, unsigned short port);
-		// 	virtual bool Listen(const char * ip, unsigned short port);
-		// 	virtual bool DoAccept();
-
-		virtual bool OnIOCPMessage(BOOL bSuccess);
-		virtual bool Close();
-		void OnClear();
-
-		//config
-		IIOServer			*m_ios;
-		ITcpAcceptCallback  *m_cb;
-		std::string		m_ip;
-		short			m_port;
-		//listen
-		SOCKET			m_server;
-		SOCKADDR_IN		m_addr;
-
-		//client
-		SOCKET m_socket;
-		char m_recvBuf[200];
-		DWORD m_recvLen;
-		tagReqHandle m_handle;
-
-		//status
-		int m_nAcceptCount;
-		int m_nLinkStatus;
-	};
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+public:
+	CSchedule();
+	void Start();
+	void Stop();
+	void Run();
+	virtual bool OnStop();
+	virtual bool OnMsg(void *pUser);
+	virtual bool OnAccept(ITcpSocket * s);
+	virtual bool OnClose();
+	ITcpAccept * m_accept;
+	IIOServer * m_ios;
+	std::vector<CIOServer *> m_process;
+	int						m_iCurProcess;
+};
 
 
 #endif
-
-
-
-
-
-
-
-
-
 
 

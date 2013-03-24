@@ -37,6 +37,7 @@
 #include "epoll.h"
 #include "tcpaccept.h"
 #include "tcpsocket.h"
+using namespace zsummer;
 
 zsummer::network::IIOServer * zsummer::network::CreateIOServer()
 {

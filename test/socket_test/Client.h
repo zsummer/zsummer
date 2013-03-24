@@ -33,80 +33,31 @@
  * 
  * (end of COPYRIGHT)
  */
-#ifndef _ZSUMMER_TCPACCEPT_H_
-#define _ZSUMMER_TCPACCEPT_H_
 
-#include "public.h"
-namespace zsummer
+#ifndef ZSUMMER_CLIENT_H_
+#define ZSUMMER_CLIENT_H_
+#include "header.h"
+
+class CClient :public ITcpSocketCallback
 {
-	using namespace zsummer::network;
+public:
+	CClient();
+	~CClient();
+	void SetSocket(ITcpSocket *s);
+	virtual bool OnRecv();
+	virtual bool OnConnect(bool bConnected);
+	virtual bool OnSend();
+	virtual bool OnClose();
 
-	class CTcpAccept : public ITcpAccept
-	{
-	public:
-		CTcpAccept();
-		virtual ~CTcpAccept();
-		virtual bool BindIOServer(IIOServer * ios);
-		virtual bool SetCallbck(ITcpAcceptCallback * cb);
-		virtual bool OpenAccept(const char * ip, unsigned short port);
-		// 	virtual bool Listen(const char * ip, unsigned short port);
-		// 	virtual bool DoAccept();
+	ITcpSocket * m_socket;
+	tagPacket m_recv;
+	unsigned char m_type; //1,2  header, body
 
-		virtual bool OnIOCPMessage(BOOL bSuccess);
-		virtual bool Close();
-		void OnClear();
-
-		//config
-		IIOServer			*m_ios;
-		ITcpAcceptCallback  *m_cb;
-		std::string		m_ip;
-		short			m_port;
-		//listen
-		SOCKET			m_server;
-		SOCKADDR_IN		m_addr;
-
-		//client
-		SOCKET m_socket;
-		char m_recvBuf[200];
-		DWORD m_recvLen;
-		tagReqHandle m_handle;
-
-		//status
-		int m_nAcceptCount;
-		int m_nLinkStatus;
-	};
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	std::queue<tagPacket *> m_sendque;
+	char m_send[_MSG_BUF_LEN];
+	bool m_sending;
+};
 
 #endif
-
-
-
-
-
-
-
-
-
 
 

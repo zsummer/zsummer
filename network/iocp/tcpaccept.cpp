@@ -37,7 +37,7 @@
 #include "tcpaccept.h"
 #include "tcpsocket.h"
 #include "iocp.h"
-
+using namespace zsummer;
 zsummer::network::ITcpAccept * zsummer::network::CreateTcpAccept()
 {
 	return new CTcpAccept;

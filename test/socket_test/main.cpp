@@ -33,80 +33,50 @@
  * 
  * (end of COPYRIGHT)
  */
-#ifndef _ZSUMMER_TCPACCEPT_H_
-#define _ZSUMMER_TCPACCEPT_H_
 
-#include "public.h"
-namespace zsummer
+#include "header.h"
+#include "Schedule.h"
+using namespace zsummer::log4z;
+int g_nTotalLinked = 0;
+int g_nTotalCloesed = 0;
+int g_nTotalRecvLen = 0;
+int g_nTotalSendLen = 0;
+
+int main(int argc, char* argv[])
 {
-	using namespace zsummer::network;
-
-	class CTcpAccept : public ITcpAccept
-	{
-	public:
-		CTcpAccept();
-		virtual ~CTcpAccept();
-		virtual bool BindIOServer(IIOServer * ios);
-		virtual bool SetCallbck(ITcpAcceptCallback * cb);
-		virtual bool OpenAccept(const char * ip, unsigned short port);
-		// 	virtual bool Listen(const char * ip, unsigned short port);
-		// 	virtual bool DoAccept();
-
-		virtual bool OnIOCPMessage(BOOL bSuccess);
-		virtual bool Close();
-		void OnClear();
-
-		//config
-		IIOServer			*m_ios;
-		ITcpAcceptCallback  *m_cb;
-		std::string		m_ip;
-		short			m_port;
-		//listen
-		SOCKET			m_server;
-		SOCKADDR_IN		m_addr;
-
-		//client
-		SOCKET m_socket;
-		char m_recvBuf[200];
-		DWORD m_recvLen;
-		tagReqHandle m_handle;
-
-		//status
-		int m_nAcceptCount;
-		int m_nLinkStatus;
-	};
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifndef _WIN32
+	signal( SIGHUP, SIG_IGN );
+	signal( SIGALRM, SIG_IGN ); 
+	signal( SIGPIPE, SIG_IGN );
+	signal( SIGXCPU, SIG_IGN );
+	signal( SIGXFSZ, SIG_IGN );
+	signal( SIGPROF, SIG_IGN ); 
+	signal( SIGVTALRM, SIG_IGN );
+	signal( SIGQUIT, SIG_IGN );
+	signal( SIGCHLD, SIG_IGN);
 #endif
+	ILog4zManager::GetInstance()->Start();
+//ILog4zManager::GetInstance()->ChangeLoggerDisplay(ILog4zManager::GetInstance()->GetMainLogger(), false);
+//ILog4zManager::GetInstance()->ChangeLoggerLevel(ILog4zManager::GetInstance()->GetMainLogger(), LOG_LEVEL_INFO);
+	CSchedule schedule;
+	schedule.Start();
+	int nLastRecv = 0;
+	int nLastSend = 0;
+	for (;;)
+	{
+		SleepMillisecond(5000);
+		int temp1 = g_nTotalRecvLen;
+		int temp2 = g_nTotalSendLen;
+		LOGI(fixed << std::setprecision(2) << "TotalLinked:" << g_nTotalLinked <<",  TotalClosed:" << g_nTotalCloesed
+			<< ",  TotalRecvd:" << g_nTotalRecvLen/1024.0/1024.0 
+			<< " M,  TotalSent:" << g_nTotalSendLen/1024.0/1024.0
+			<< " M,  Recv Speed:" << (temp1 - nLastRecv)/1024.0/1024.0/5.0
+			<< " M,  Send Speed:" << (temp2 - nLastSend)/1024.0/1024.0/5.0);
+	}
+	schedule.Stop();
 
 
-
-
-
-
-
-
-
-
+	//InterfaceLogger::GetInstance()->Stop();
+	return 0;
+}
 
