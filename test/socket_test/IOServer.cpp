@@ -40,6 +40,10 @@
 CIOServer::CIOServer()
 {
 	m_ios = NULL;
+	m_nTotalRecvLen = 0;
+	m_nTotalSendLen = 0;
+	m_nTotalRecvCount = 0;
+	m_nTotalSendCount = 0;
 }
 
 bool CIOServer::Start()
@@ -78,7 +82,7 @@ bool CIOServer::OnMsg(void *pUser)
 	ITcpSocket * s = (ITcpSocket *) pUser;
 	CClient * p = new CClient;
 	s->BindIOServer(m_ios);
-	p->SetSocket(s);
+	p->InitSocket(this, s);
 	return true;
 }
 

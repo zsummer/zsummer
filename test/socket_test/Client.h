@@ -37,25 +37,26 @@
 #ifndef ZSUMMER_CLIENT_H_
 #define ZSUMMER_CLIENT_H_
 #include "header.h"
-
+class CIOServer;
 class CClient :public ITcpSocketCallback
 {
 public:
 	CClient();
 	~CClient();
-	void SetSocket(ITcpSocket *s);
+	void InitSocket(CIOServer *ios, ITcpSocket *s);
 	virtual bool OnRecv();
 	virtual bool OnConnect(bool bConnected);
 	virtual bool OnSend();
 	virtual bool OnClose();
 
+	CIOServer  * m_ios;
 	ITcpSocket * m_socket;
-	tagPacket m_recv;
+	
 	unsigned char m_type; //1,2  header, body
+	Packet m_recving;
 
-	std::queue<tagPacket *> m_sendque;
-	char m_send[_MSG_BUF_LEN];
-	bool m_sending;
+	std::queue<Packet *> m_sendque;
+	Packet m_sending;
 };
 
 #endif

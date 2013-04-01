@@ -12,7 +12,7 @@ using namespace std;
 using namespace boost;
 
 #define _BUF_LEN	(5*1024)
-#define _SEND_LEN   (200)
+#define _SEND_LEN   (1024)
 
 static int g_recvmsgs = 0;
 static char g_senddata[_BUF_LEN];
@@ -101,7 +101,7 @@ public:
 			cout <<"ERR: "  << boost::system::system_error(error).what() << endl;
 			return ;
 		}
-		m_time.expires_from_now(boost::posix_time::milliseconds(1000+rand()%1000));
+		m_time.expires_from_now(boost::posix_time::milliseconds(5000+rand()%1000));
 		m_time.async_wait(boost::bind(&CClient::TimeOut, this, _1));
 	}
 

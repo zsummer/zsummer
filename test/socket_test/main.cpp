@@ -36,11 +36,11 @@
 
 #include "header.h"
 #include "Schedule.h"
+#include "IOServer.h"
 using namespace zsummer::log4z;
 int g_nTotalLinked = 0;
 int g_nTotalCloesed = 0;
-int g_nTotalRecvLen = 0;
-int g_nTotalSendLen = 0;
+
 
 int main(int argc, char* argv[])
 {
@@ -60,18 +60,42 @@ int main(int argc, char* argv[])
 //ILog4zManager::GetInstance()->ChangeLoggerLevel(ILog4zManager::GetInstance()->GetMainLogger(), LOG_LEVEL_INFO);
 	CSchedule schedule;
 	schedule.Start();
-	int nLastRecv = 0;
-	int nLastSend = 0;
+	unsigned long long nLastRecv = 0;
+	unsigned long long nLastSend = 0;
+	unsigned long long nLastRecvCount = 0;
+	unsigned long long nLastSendCount = 0;
 	for (;;)
 	{
 		SleepMillisecond(5000);
-		int temp1 = g_nTotalRecvLen;
-		int temp2 = g_nTotalSendLen;
-		LOGI(fixed << std::setprecision(2) << "TotalLinked:" << g_nTotalLinked <<",  TotalClosed:" << g_nTotalCloesed
-			<< ",  TotalRecvd:" << g_nTotalRecvLen/1024.0/1024.0 
-			<< " M,  TotalSent:" << g_nTotalSendLen/1024.0/1024.0
-			<< " M,  Recv Speed:" << (temp1 - nLastRecv)/1024.0/1024.0/5.0
-			<< " M,  Send Speed:" << (temp2 - nLastSend)/1024.0/1024.0/5.0);
+		unsigned long long temp1 = 0;
+		unsigned long long temp2 = 0;
+		unsigned long long temp3 = 0;
+		unsigned long long temp4 = 0;
+		for (std::vector<CIOServer *>::const_iterator iter = schedule.m_process.begin(); iter != schedule.m_process.end(); ++iter)
+		{
+			temp1 += (*iter)->GetTotalRecvLen();
+			temp2 += (*iter)->GetTotalSendLen();
+			temp3 += (*iter)->GetTotalRecvCount();
+			temp4 += (*iter)->GetTotalSendCount();
+		}
+		LOGI(fixed << std::setprecision(2) 
+			<< "TotalLinked:" << g_nTotalLinked 
+			<<",  TotalClosed:" << g_nTotalCloesed
+			<< " \n\t"
+
+			<< ",  TotalRecvd:" << temp1/1024.0/1024.0 
+			<< " M,  TotalSent:" << temp2/1024.0/1024.0
+			<< " M, Recv Speed:" << (temp1 - nLastRecv)/1024.0/1024.0/5.0
+			<< " M,  Send Speed:" << (temp2 - nLastSend)/1024.0/1024.0/5.0
+			<< " M, \n\t"
+			<< ",  TotalRecvCount:" << temp3
+			<< ",  TotalSentCount:" << temp4
+			<< ",  RecvCount Speed:" << (temp3 - nLastRecvCount)/5.0
+			<< " ,  SendCount Speed:" << (temp4 - nLastSendCount)/5.0);
+		nLastRecv = temp1;
+		nLastSend = temp2;
+		nLastRecvCount = temp3;
+		nLastSendCount = temp4;
 	}
 	schedule.Stop();
 

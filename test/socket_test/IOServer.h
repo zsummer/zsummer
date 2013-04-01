@@ -50,8 +50,25 @@ public:
 	virtual void Post(void * pUser);
 	virtual bool OnStop();
 	virtual bool OnMsg(void *pUser);
+
+	inline unsigned long long GetTotalRecvLen() {return m_nTotalRecvLen;}
+	inline void AddTotalRecvLen(unsigned long long len) { m_nTotalRecvLen += len;}
+
+	inline unsigned long long GetTotalSendLen() {return m_nTotalSendLen;}
+	inline void AddTotalSendLen(unsigned long long len) { m_nTotalSendLen += len;}
+
+	inline unsigned long long GetTotalRecvCount() {return m_nTotalRecvCount;}
+	inline void AddTotalRecvCount(unsigned long long len) { m_nTotalRecvCount += len;}
+
+	inline unsigned long long GetTotalSendCount() {return m_nTotalSendCount;}
+	inline void AddTotalSendCount(unsigned long long len) { m_nTotalSendCount += len;}
+	
 private:
 	IIOServer * m_ios;
+	unsigned long long  m_nTotalRecvLen;
+	unsigned long long  m_nTotalSendLen;
+	unsigned long long  m_nTotalRecvCount;
+	unsigned long long  m_nTotalSendCount;
 };
 
 #endif

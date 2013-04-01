@@ -35,66 +35,65 @@
  */
 
 #include "Client.h"
+#include "IOServer.h"
 
 CClient::CClient()
 {
+	m_ios = NULL;
 	m_socket = NULL;
+
 	m_type = 1;
-	memset(&m_send, 0, sizeof(m_send));
-	m_sending = false;
-	memset(&m_recv, 0, sizeof(m_recv));
+	memset(&m_recving, 0, sizeof(m_recving));
+	memset(&m_sending, 0, sizeof(m_sending));
 }
+
 CClient::~CClient()
 {
 }
 
-void CClient::SetSocket(ITcpSocket *s)
+void CClient::InitSocket(CIOServer *ios, ITcpSocket *s)
 {
+	m_ios = ios;
 	m_socket = s;
-	memset(&m_send, 0, sizeof(m_send));
-	m_sending = false;
-	memset(&m_recv, 0, sizeof(m_recv));
-	m_type = 1;
 	m_socket->SetCallback(this);
-	m_socket->DoRecv((char*)&m_recv._head, 2);
+
+	m_socket->DoRecv((char*)&m_recving._head, 2);
 }
 
 bool CClient::OnRecv()
 {
 	//先收取2字节包头
+	m_ios->AddTotalRecvCount(1);
 	if (m_type == 1)
 	{
 		m_type = 2;
-		if (m_recv._head <= 2 || m_recv._head >= _MSG_LEN)
+		if (m_recving._head <= 2 || m_recving._head >= _MSG_LEN)
 		{
-			LOGE("recv body len = " << m_recv._head);
+			LOGE("recv body len = " << m_recving._head);
 			m_socket->Close();
 			return false;
 		}
-		m_socket->DoRecv(m_recv._body, m_recv._head-2);
+		m_socket->DoRecv(m_recving._body+2, m_recving._head-2);
 	}
 	//收取包体内容
 	else if (m_type == 2)
 	{
-		m_recv._body[m_recv._head-2] = '\0';
-		AtomicAdd(&g_nTotalRecvLen, m_recv._head);
-		LOGD("recv msg: " << m_recv._body);
-		if (m_sending)
+		m_recving._body[m_recving._head] = '\0';
+		m_ios->AddTotalRecvLen(m_recving._head);
+		//LOGD("recv msg: " << m_recving._body+2);
+		if (m_sending._head != 0)
 		{
-			tagPacket * p =new tagPacket;
-			memcpy(p, &m_recv, sizeof(m_recv));
+			Packet * p =new Packet;
+			memcpy(p, &m_recving, sizeof(Packet));
 			m_sendque.push(p);
 		}
 		else
 		{
-			memcpy(m_send, &m_recv._head, 2);
-			memcpy(m_send+2, m_recv._body, m_recv._head-2);
-			m_sending = true;
-			m_socket->DoSend(m_send, m_recv._head);
-			AtomicAdd(&g_nTotalSendLen, m_recv._head);
+			memcpy(&m_sending, &m_recving, sizeof(Packet));
+			m_socket->DoSend((char*)&m_sending._body, m_sending._head);
 		}
 		m_type = 1;
-		m_socket->DoRecv((char*)&m_recv, 2);
+		m_socket->DoRecv((char*)&m_recving._head, 2);
 	}
 	return true;
 }
@@ -106,18 +105,18 @@ bool CClient::OnConnect(bool bConnected)
 
 bool CClient::OnSend()
 {
+	m_ios->AddTotalSendCount(1);
+	m_ios->AddTotalSendLen(m_sending._head);
 	if (m_sendque.empty())
 	{
-		m_sending = false;
+		m_sending._head = 0;
 	}
 	else
 	{
-		tagPacket *p = m_sendque.front();
+		Packet *p = m_sendque.front();
 		m_sendque.pop();
-		memcpy(m_send, (const void *)p->_head, 2);
-		memcpy(m_send+2, p->_body, p->_head-2);
-		m_socket->DoSend(m_send, p->_head);
-		AtomicAdd(&g_nTotalSendLen, m_recv._head);
+		memcpy((char*)&m_sending, p, sizeof(m_sending));
+		m_socket->DoSend(m_sending._body, p->_head);
 		delete p;
 	}
 	return true;

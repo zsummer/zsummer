@@ -55,7 +55,7 @@ using namespace zsummer::network;
 
 #define _MSG_BUF_LEN	(5*1024)
 #define _MSG_LEN   (5000)
-struct tagPacket
+union Packet
 {
 	unsigned short _head;
 	char		   _body[_MSG_BUF_LEN];
@@ -64,8 +64,7 @@ struct tagPacket
 //服务端状态信息
 extern int g_nTotalLinked;
 extern int g_nTotalCloesed;
-extern int g_nTotalRecvLen;
-extern int g_nTotalSendLen;
+
 
 
 #endif
