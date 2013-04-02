@@ -34,6 +34,9 @@
  * (end of COPYRIGHT)
  */
 
+//! zsummer的测试服务模块(对应zsummer底层网络封装的上层设计测试服务) 可视为服务端架构中的 gateway服务/agent服务/前端服务, 特点是高并发高吞吐量
+//! 公共头文件
+
 #ifndef ZSUMMER_HEADER_H_
 #define ZSUMMER_HEADER_H_
 
@@ -53,17 +56,23 @@ using namespace zsummer::utility;
 using namespace zsummer::thread4z;
 using namespace zsummer::network;
 
+//! 消息包缓冲区大小
 #define _MSG_BUF_LEN	(5*1024)
+
+//! 消息长度 应该小于_MSG_BUF_LEN
 #define _MSG_LEN   (5000)
+
+//! 消息包 小头序 union可优雅的减少一次显示强制转换
 union Packet
 {
 	unsigned short _head;
 	char		   _body[_MSG_BUF_LEN];
 };
 
-//服务端状态信息
+
+//! 服务端总连入连接数和总关闭连接数
 extern int g_nTotalLinked;
-extern int g_nTotalCloesed;
+extern int g_nTotalCloesed; //! 多线程下使用 所有写操作必须为原子操作
 
 
 

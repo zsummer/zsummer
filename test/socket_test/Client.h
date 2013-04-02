@@ -34,10 +34,18 @@
  * (end of COPYRIGHT)
  */
 
+
+//! zsummer的测试服务模块(对应zsummer底层网络封装的上层设计测试服务) 可视为服务端架构中的 gateway服务/agent服务/前端服务, 特点是高并发高吞吐量
+//! Socket Client头文件
+
 #ifndef ZSUMMER_CLIENT_H_
 #define ZSUMMER_CLIENT_H_
 #include "header.h"
+
+//! 前向声明
 class CIOServer;
+
+//! 上层Socekt Client的二次封装
 class CClient :public ITcpSocketCallback
 {
 public:
@@ -52,10 +60,13 @@ public:
 	CIOServer  * m_ios;
 	ITcpSocket * m_socket;
 	
-	unsigned char m_type; //1,2  header, body
+	//! 每个消息包分两次分别读取头部和包体
+	unsigned char m_type;
+	//! 读包
 	Packet m_recving;
-
+	//! 写包队列
 	std::queue<Packet *> m_sendque;
+	//! 当前写包
 	Packet m_sending;
 };
 

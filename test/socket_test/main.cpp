@@ -34,6 +34,10 @@
  * (end of COPYRIGHT)
  */
 
+//! zsummer的测试服务模块(对应zsummer底层网络封装的上层设计测试服务) 可视为服务端架构中的 gateway服务/agent服务/前端服务, 特点是高并发高吞吐量
+//! main文件
+
+
 #include "header.h"
 #include "Schedule.h"
 #include "IOServer.h"
@@ -44,7 +48,9 @@ int g_nTotalCloesed = 0;
 
 int main(int argc, char* argv[])
 {
+
 #ifndef _WIN32
+	//! linux下需要屏蔽的一些信号
 	signal( SIGHUP, SIG_IGN );
 	signal( SIGALRM, SIG_IGN ); 
 	signal( SIGPIPE, SIG_IGN );
@@ -55,11 +61,16 @@ int main(int argc, char* argv[])
 	signal( SIGQUIT, SIG_IGN );
 	signal( SIGCHLD, SIG_IGN);
 #endif
+	//! 启动日志服务
 	ILog4zManager::GetInstance()->Start();
 //ILog4zManager::GetInstance()->ChangeLoggerDisplay(ILog4zManager::GetInstance()->GetMainLogger(), false);
 //ILog4zManager::GetInstance()->ChangeLoggerLevel(ILog4zManager::GetInstance()->GetMainLogger(), LOG_LEVEL_INFO);
+
+	//! 启动调度器
 	CSchedule schedule;
 	schedule.Start();
+
+	//main线程用于服务状态统计与输出
 	unsigned long long nLastRecv = 0;
 	unsigned long long nLastSend = 0;
 	unsigned long long nLastRecvCount = 0;
@@ -97,9 +108,10 @@ int main(int argc, char* argv[])
 		nLastRecvCount = temp3;
 		nLastSendCount = temp4;
 	}
+
 	schedule.Stop();
 
-
+	//日志服务不需要显式调用停止接口
 	//InterfaceLogger::GetInstance()->Stop();
 	return 0;
 }

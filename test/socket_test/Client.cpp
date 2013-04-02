@@ -62,7 +62,7 @@ void CClient::InitSocket(CIOServer *ios, ITcpSocket *s)
 
 bool CClient::OnRecv()
 {
-	//先收取2字节包头
+	//! 先收包头
 	m_ios->AddTotalRecvCount(1);
 	if (m_type == 1)
 	{
@@ -75,7 +75,7 @@ bool CClient::OnRecv()
 		}
 		m_socket->DoRecv(m_recving._body+2, m_recving._head-2);
 	}
-	//收取包体内容
+	//! 收包体
 	else if (m_type == 2)
 	{
 		m_recving._body[m_recving._head] = '\0';
@@ -125,7 +125,7 @@ bool CClient::OnSend()
 bool CClient::OnClose()
 {
 	LOGI("Client Closed!");
-	delete this;
+	delete this; //! 安全的自删除源于底层的彻底的异步分离
 	AtomicAdd(&g_nTotalCloesed, 1);
 	return true;
 }

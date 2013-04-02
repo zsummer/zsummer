@@ -34,6 +34,10 @@
  * (end of COPYRIGHT)
  */
 
+
+//! zsummer的测试服务模块(对应zsummer底层网络封装的上层设计测试服务) 可视为服务端架构中的 gateway服务/agent服务/前端服务, 特点是高并发高吞吐量
+//! IOServer头文件 该类负责处理Schedule抛过来的client socket. 每个IOServer独立一个线程.
+
 #ifndef ZSUMMER_IOSERVER_H_
 #define ZSUMMER_IOSERVER_H_
 
@@ -43,14 +47,19 @@ class CIOServer : public CThread, public IIOServerCallback
 {
 public:
 	CIOServer();
+	//! 启动与停止
 	bool Start();
 	void Stop();
-
+	//! 线程
 	virtual void Run();
+	//! 投递线程间消息 当前设计仅供Schedule投递client socket用
 	virtual void Post(void * pUser);
+	//!IOServer被安全停止
 	virtual bool OnStop();
+	//！收到线程消息 
 	virtual bool OnMsg(void *pUser);
 
+	//! 一些状态统计用接口
 	inline unsigned long long GetTotalRecvLen() {return m_nTotalRecvLen;}
 	inline void AddTotalRecvLen(unsigned long long len) { m_nTotalRecvLen += len;}
 

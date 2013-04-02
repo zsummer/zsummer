@@ -34,6 +34,10 @@
  * (end of COPYRIGHT)
  */
 
+//! zsummer的测试服务模块(对应zsummer底层网络封装的上层设计测试服务) 可视为服务端架构中的 gateway服务/agent服务/前端服务, 特点是高并发高吞吐量
+//! Schedule头文件 该类负责监听端口, accept client, 并把accept到的socket分发给IOServer池去处理.
+
+
 #ifndef ZSUMMER_SCHEDULE_H_
 #define ZSUMMER_SCHEDULE_H_
 #include "header.h"
@@ -42,15 +46,21 @@ class CSchedule :public ITcpAcceptCallback, public IIOServerCallback, public CTh
 {
 public:
 	CSchedule();
+	//! 启动与停止
 	void Start();
 	void Stop();
+	//! 线程
 	void Run();
 	virtual bool OnStop();
 	virtual bool OnMsg(void *pUser);
+	//! accept到client
 	virtual bool OnAccept(ITcpSocket * s);
 	virtual bool OnClose();
+
 	ITcpAccept * m_accept;
 	IIOServer * m_ios;
+
+	//! IOServer池
 	std::vector<CIOServer *> m_process;
 	int						m_iCurProcess;
 };
