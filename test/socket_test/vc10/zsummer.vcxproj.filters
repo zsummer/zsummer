@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="core">
+      <UniqueIdentifier>{1e2ceaaf-1963-4408-8445-3ca0ed81db08}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="log">
+      <UniqueIdentifier>{a8829607-bab4-44c1-977c-0d90afb4ffa7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utility">
+      <UniqueIdentifier>{a7f26e24-20ec-4caa-b749-d5fee148f77b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="main">
+      <UniqueIdentifier>{0aeb5165-2d52-4eb4-b8de-77430c6a72b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="thread">
+      <UniqueIdentifier>{92b24e1d-b657-4c9a-8279-14e58613a67a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\network\SocketInterface.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\iocp\iocp.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\iocp\public.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\iocp\tcpaccept.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\iocp\tcpsocket.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tools\log4z\log4z.h">
+      <Filter>log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tools\thread4z\thread.h">
+      <Filter>thread</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Client.h">
+      <Filter>main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\header.h">
+      <Filter>main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\IOServer.h">
+      <Filter>main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Schedule.h">
+      <Filter>main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\utility\utility.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\network\iocp\iocp.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\network\iocp\public.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\network\iocp\tcpaccept.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\network\iocp\tcpsocket.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tools\log4z\log4z.cpp">
+      <Filter>log</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\tools\thread4z\thread.cpp">
+      <Filter>thread</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Client.cpp">
+      <Filter>main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\IOServer.cpp">
+      <Filter>main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main.cpp">
+      <Filter>main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Schedule.cpp">
+      <Filter>main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\utility\utility.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

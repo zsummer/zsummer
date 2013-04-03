@@ -28,7 +28,7 @@ public:
 		m_type = 0;
 
 		//m_time.expires_from_now(boost::posix_time::milliseconds(1000));
-		m_time.expires_from_now(boost::posix_time::milliseconds(2000+rand()%90000));
+		m_time.expires_from_now(boost::posix_time::milliseconds(2000+rand()%30000));
 		m_time.async_wait(boost::bind(&CClient::TimeOut, this, _1));
 	}
 	bool Connect(const char * ip, unsigned short port)
@@ -101,7 +101,7 @@ public:
 			cout <<"ERR: "  << boost::system::system_error(error).what() << endl;
 			return ;
 		}
-		m_time.expires_from_now(boost::posix_time::milliseconds(5000+rand()%1000));
+		m_time.expires_from_now(boost::posix_time::milliseconds(700+rand()%600));
 		m_time.async_wait(boost::bind(&CClient::TimeOut, this, _1));
 	}
 

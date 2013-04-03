@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "iocp_server", "iocp_server.vcxproj", "{26E62078-C961-4984-BBA0-7B47CB73FB86}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zsummer", "zsummer.vcxproj", "{26E62078-C961-4984-BBA0-7B47CB73FB86}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FFA743E7-7E80-4BBA-A15E-D752E4E7EAF9}"
 	ProjectSection(SolutionItems) = preProject
