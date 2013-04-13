@@ -73,17 +73,25 @@ namespace zsummer
 		class IIOServerCallback
 		{
 		public:
+			//! IIOServer.Stop callback.
 			virtual bool OnStop() = 0;
+			//! IIOServer.post(pUser) callback.
 			virtual bool OnMsg(void *pUser) = 0;
+			//! IIOServer's Timerr. per 1 seconds trigger. Don't spend too much time in here.
+			virtual bool OnTimer() = 0;
 		};
 		class IIOServer
 		{
 		public:
 			IIOServer(){}
 			virtual ~IIOServer() {}
+			//! some initialization for runing.
 			virtual bool Start(IIOServerCallback *cb) = 0;
+			//! user block call.
 			virtual void Run() = 0;
+			//! stop IIOServer. It's asynchronous call and thread safe. if finish IIOServer will call IIOServerCallback.OnStop.	
 			virtual bool Stop() = 0;
+			//! provide Thread's message queue.
 			virtual void Post(void *pUser) = 0;
 		};
 

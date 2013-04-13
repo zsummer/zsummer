@@ -126,9 +126,10 @@ void CIOServer::Run()
 	epoll_event events[10000];
 	int retCount = 0;
 	bool bRuning = true;
+	unsigned int timerTime = GetTimeMillisecond();
 	while (true)
 	{
-		retCount = epoll_wait(m_epoll, events, 10000,  -1);
+		retCount = epoll_wait(m_epoll, events, 10000,  1000);
 		if (retCount == -1)
 		{
 			if (errno != EINTR)
@@ -138,8 +139,17 @@ void CIOServer::Run()
 			}
 			continue;
 		}
+		//check timer
+		{
+			unsigned int curTime = GetTimeMillisecond();
+			if (curTime - timerTime > 1000)
+			{
+				timerTime = curTime;
+				m_cb->OnTimer();
+			}
+			if (retCount == 0) continue;//timeout
+		}
 
-		//if (retCount == 0) continue;//timeout
 		
 		for (int i=0; i<retCount; i++)
 		{

@@ -89,8 +89,7 @@ int main(int argc, char* argv[])
 			temp3 += (*iter)->GetTotalRecvCount();
 			temp4 += (*iter)->GetTotalSendCount();
 		}
-		LOGI(fixed << std::setprecision(2) 
-			<< "TotalLinked:" << g_nTotalLinked 
+		LOGI("TotalLinked:" << g_nTotalLinked 
 			<<",  TotalClosed:" << g_nTotalCloesed
 			<< " \n\t"
 

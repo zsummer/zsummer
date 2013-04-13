@@ -58,6 +58,7 @@ public:
 	virtual bool OnStop();
 	//！收到线程消息 
 	virtual bool OnMsg(void *pUser);
+	virtual bool OnTimer();
 
 	//! 一些状态统计用接口
 	inline unsigned long long GetTotalRecvLen() {return m_nTotalRecvLen;}

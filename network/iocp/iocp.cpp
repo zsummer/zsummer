@@ -40,21 +40,8 @@
 using namespace zsummer;
 
 
-/*
-* 12.6.9
-* E8400 CPU 双核
-* DDRIII 4G 内存
-* 两台机器 1.6w连接 客户端压力为5%,  服务端为5%
-* 3w连接  客户端60%, 服务端60%
-*
-* 测试方法  服务端开两个线程处理 把接收到的包原样返回
-*           客户端单线程 开两个进程 每个进程8000, 每秒向服务器发送一个几百字节的数据 并在接收到数据的时候memcmp检测.
-*/
 
-/*
-	测试方法 每隔10.5秒发送一个200字节的数据
-	3.2w连接 服务端占CPU 0%~8% 跳跃, 客户端3%~9%跳跃
-*/
+
 zsummer::network::IIOServer * zsummer::network::CreateIOServer()
 {
 	return new CIOServer();
@@ -115,14 +102,30 @@ void CIOServer::Run()
 	DWORD dwTranceCount = 0;
 	ULONG_PTR uComKey = NULL;
 	LPOVERLAPPED pOverlapped = NULL;
-
+	unsigned int timerTime = GetTimeMillisecond();
 	while (1)
 	{
 		dwTranceCount = 0;
 		uComKey = 0;
 		pOverlapped = NULL;
 
-		BOOL bRet = GetQueuedCompletionStatus(m_io, &dwTranceCount, &uComKey, &pOverlapped, INFINITE);
+		BOOL bRet = GetQueuedCompletionStatus(m_io, &dwTranceCount, &uComKey, &pOverlapped, 1000/*INFINITE*/);
+
+		//check timer
+		{
+			unsigned int curTime = GetTimeMillisecond();
+			if (curTime - timerTime > 1000)
+			{
+				timerTime = curTime;
+				m_cb->OnTimer();
+			}
+			if (!bRet && !pOverlapped)
+			{
+				//TIMEOUT
+				continue;
+			}
+		}
+
 		if (uComKey == PCK_IOCP_EXIT && pOverlapped == NULL)
 		{
 			LCI("PCK_IOCP_EXIT ...");

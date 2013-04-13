@@ -84,6 +84,12 @@ bool CSchedule::OnMsg(void *pUser)
 {
 	return true;
 }
+bool CSchedule::OnTimer()
+{
+	//LOGD("CSchedule::OnTimer():"<<GetTimeMillisecond());
+	return true;
+}
+
 
 bool CSchedule::OnAccept(ITcpSocket * s)
 {

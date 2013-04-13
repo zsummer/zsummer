@@ -53,6 +53,7 @@ public:
 	void Run();
 	virtual bool OnStop();
 	virtual bool OnMsg(void *pUser);
+	virtual bool OnTimer();
 	//! acceptµ½client
 	virtual bool OnAccept(ITcpSocket * s);
 	virtual bool OnClose();

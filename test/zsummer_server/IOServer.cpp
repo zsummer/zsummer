@@ -86,3 +86,9 @@ bool CIOServer::OnMsg(void *pUser)
 	return true;
 }
 
+ bool CIOServer::OnTimer()
+ {
+	// LOGD("CIOServer::OnTimer():" << GetTimeMillisecond());
+	 return true;
+ }
+
