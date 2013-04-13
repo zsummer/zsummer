@@ -50,7 +50,10 @@
 #ifndef zs_ut_s
 #define zs_ut_s zsummer::utility
 #endif
+#ifdef WIN32
 #pragma warning(disable:4996)
+#endif
+
 
 //-------------------------------------------------------------------
 void zs_ut_s::SleepMillisecond(unsigned int ms)
