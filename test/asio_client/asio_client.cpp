@@ -6,7 +6,8 @@
 
 
 #include <stdio.h>
-#include <tchar.h>
+#include <stdlib.h>
+#include <string.h>
 #include <iostream>
 #include <string>
 #include <boost/asio.hpp>
@@ -17,7 +18,7 @@ using namespace std;
 using namespace boost;
 
 #define _BUF_LEN	(5*1024)
-#define _SEND_LEN   (200)
+#define _SEND_LEN   (1024)
 
 static int g_recvmsgs = 0;
 static char g_senddata[_BUF_LEN];
@@ -138,7 +139,7 @@ void Moniter(const boost::system::error_code& error )
 	g_ptimer->async_wait(&Moniter);
 }
 
-int _tmain(int argc, _TCHAR* argv[])
+int main(int argc, char* argv[])
 {
 	{
 		memset(g_senddata, 0, sizeof(g_senddata));
