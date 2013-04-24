@@ -38,8 +38,7 @@
 
 zsummer::CApp::CApp()
 {
-	g_coreID = zsummer::log4z::ILog4zManager::GetInstance()->DynamicCreateLogger("", "network");
-	assert(g_coreID != -1);
+	g_coreID = -1;
 }
 LoggerId g_coreID;
 zsummer::CApp app;

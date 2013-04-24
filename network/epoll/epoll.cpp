@@ -65,6 +65,12 @@ CIOServer::~CIOServer()
 
 bool CIOServer::Start(IIOServerCallback *cb)
 {
+	if (g_coreID <0)
+	{
+		g_coreID = zsummer::log4z::ILog4zManager::GetInstance()->FindLogger("NetWork");
+	}
+	//assert(g_coreID != -1);
+	
 	m_cb = cb;
 	if (m_epoll != 0)
 	{

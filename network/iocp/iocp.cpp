@@ -64,6 +64,12 @@ CIOServer::~CIOServer()
 
 bool CIOServer::Start(IIOServerCallback * cb)
 {
+	if (g_coreID <0)
+	{
+		g_coreID = zsummer::log4z::ILog4zManager::GetInstance()->FindLogger("NetWork");
+	}
+	//assert(g_coreID != -1);
+
 	if (m_io != NULL)
 	{
 		LCF("iocp is craeted !");

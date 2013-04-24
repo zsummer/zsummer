@@ -52,8 +52,7 @@ zsummer::CInitWSASocketEnv::CInitWSASocketEnv()
 	{
 		assert(0);
 	}
-	g_coreID = zsummer::log4z::ILog4zManager::GetInstance()->DynamicCreateLogger("", "NetWork");
-	assert(g_coreID != -1);
+	g_coreID = -1;
 }
 zsummer::CInitWSASocketEnv::~CInitWSASocketEnv()
 {

@@ -12,7 +12,7 @@ message(${source})
 link_libraries( rt pthread)
 add_definitions(-Wall -g -ggdb )
 
-set(executable_output_path ./)
-add_executable(zsumeer_server ${source})
+set(EXECUTABLE_OUTPUT_PATH "./bin/")
+add_executable(zsummer_server ${source})
 
 
