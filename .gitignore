@@ -8,6 +8,9 @@ fast_test
 .svn/*
 *.pydevproject
 .project
+CMakeFiles
+*.cmake
+CMakeCache.txt
 .metadata
 bin/
 tmp/
