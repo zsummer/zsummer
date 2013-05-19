@@ -10,7 +10,7 @@ aux_source_directory(./ LL_S)
 set(source ${UT_S} ${TH_S} ${LG_S} ${EP_S} ${LL_S})
 message(${source})
 link_libraries( rt pthread)
-add_definitions(-Wall -g -ggdb )
+add_definitions( -g -ggdb )
 
 set(EXECUTABLE_OUTPUT_PATH "./bin/")
 add_executable(zsummer_server ${source})
