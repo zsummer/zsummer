@@ -40,7 +40,7 @@
  * VERSION:  2.0.0
  * PURPOSE:  A lightweight library for error reporting and logging to file and screen .
  * CREATION: 2010.10.4
- * LCHANGE:  2013.04.23
+ * LCHANGE:  2013.04.25
  * LICENSE:  Expat/MIT License, See Copyright Notice at the begin of this file.
  */
 
@@ -53,11 +53,11 @@
  */
 
 
-/*
+/* 
  * UPDATES LOG
- *
+ * 
  * VERSION 0.1.0 <DATE: 2010.10.4>
- *    create the first project.  
+ * 	create the first project.  
  * 	It support put log to screen and files, 
  * 	support log level, support one day one log file.
  * 	support multiple thread, multiple operating system.
@@ -74,34 +74,33 @@
  * 	support comments in the config file.
  * 	add a advanced demo in the ./project
  * 	fix some details.
- *
+ * 
  * VERSION 1.0.1 <DATE: 2013.01.01>
- *    the source code haven't any change.
- *	   fix some Comments in the log4z
- *	   add some comments in the test projects.
- *	   delete some needless code in the 'fast_test' demo projects, it's so simple.
- *
+ * 	the source code haven't any change.
+ * 	fix some Comments in the log4z
+ * 	add some comments in the test projects.
+ * 	delete some needless code in the 'fast_test' demo projects, it's so simple.
+ * 
  * VERSION 1.1.0 <DATE: 2013.01.24>
- *    the method Start will wait for the logger thread started.
- *	   config and add method change. 
- *	   namespace change.
- *	   append some macro.
- *
+ * 	the method Start will wait for the logger thread started.
+ * 	config and add method change. 
+ * 	namespace change.
+ * 	append some macro.
+ * 
  * VERSION 1.1.1 <DATE: 2013.02.23>
- *    add GetStatus**** mothed.
- *	   optimize. 
+ * 	add GetStatus**** mothed.
+ * 	optimize. 
  * VERSION 1.2.0 <DATE: 2013.04.05>
- *    optimize log macro.
- *
+ * 	optimize log macro.
+ * 
  * VERSION 1.2.1 <DATE: 2013.04.13>
- *    1.20 optimize detail fixed.
- *
+ * 	1.20 optimize detail fixed.
+ * 
  * VERSION 2.0.0 <DATE: 2013.04.25>
- *    optimize interface.
- *    change config file format.
- *    file name suffix add process id.
- *	  main logger can config.
- *
+ * 	new interface.
+ * 	new config design.
+ * 	file name append process id.
+ * 
  */
 
 #pragma once
@@ -117,19 +116,19 @@
 typedef int LoggerId;
 
 //! the max logger count.
-const static int LOG4Z_LOGGER_MAX = 10;
+#define LOG4Z_LOGGER_MAX 10
 
 //! the max log content length.
-const static int LOG4Z_LOG_BUF_SIZE = 2048;
+#define LOG4Z_LOG_BUF_SIZE 2048
 
 //! the invalid logger id. 
-const static LoggerId LOG4Z_INVALID_LOGGER_ID = -1;
+#define LOG4Z_INVALID_LOGGER_ID -1
 
 //! the main logger id.
-const static LoggerId LOG4Z_MAIN_LOGGER_ID = 0;
+#define LOG4Z_MAIN_LOGGER_ID 0
 
 //! the main logger name.
-const static char * LOG4Z_MAIN_LOGGER_NAME = "Main";
+#define LOG4Z_MAIN_LOGGER_NAME "Main"
 
 //! LOG Level
 enum ENUM_LOG_LEVEL
@@ -233,12 +232,12 @@ extern __thread char g_log4zstreambuf[LOG4Z_LOG_BUF_SIZE];
 #define LOG_FATAL(id, log) LOG_STREAM(id, LOG_LEVEL_FATAL, log)
 
 //! super micro.
-#define LOGD( log ) LOG_DEBUG(0, log )
-#define LOGI( log ) LOG_INFO(0, log )
-#define LOGW( log ) LOG_WARN(0, log )
-#define LOGE( log ) LOG_ERROR(0, log )
-#define LOGA( log ) LOG_ALARM(0, log )
-#define LOGF( log ) LOG_FATAL(0, log )
+#define LOGD( log ) LOG_DEBUG(LOG4Z_MAIN_LOGGER_ID, log )
+#define LOGI( log ) LOG_INFO(LOG4Z_MAIN_LOGGER_ID, log )
+#define LOGW( log ) LOG_WARN(LOG4Z_MAIN_LOGGER_ID, log )
+#define LOGE( log ) LOG_ERROR(LOG4Z_MAIN_LOGGER_ID, log )
+#define LOGA( log ) LOG_ALARM(LOG4Z_MAIN_LOGGER_ID, log )
+#define LOGF( log ) LOG_FATAL(LOG4Z_MAIN_LOGGER_ID, log )
 
 
 
@@ -255,6 +254,16 @@ _ZSUMMER_LOG4Z_BEGIN
 #pragma warning(push)
 #pragma warning(disable:4996)
 #endif
+struct BinaryBlock
+{
+	BinaryBlock(const char * buf, int len)
+	{
+		_buf = buf;
+		_len = len;
+	}
+	const char * _buf;
+	int  _len;
+};
 class CStringStream
 {
 public:
@@ -274,7 +283,6 @@ public:
 			int count = (int)(m_pEnd - m_pCur);
 #ifdef WIN32
 			len = _snprintf(m_pCur, count, ft, t);
-			int err = errno;
 			if (len == count || (len == -1 && errno == ERANGE))
 			{
 				len = count;
@@ -434,6 +442,17 @@ public:
 	CStringStream & operator <<(const std::string t)
 	{
 		WriteData("%s", t.c_str());
+		return *this;
+	}
+
+	CStringStream & operator << (const BinaryBlock binary)
+	{
+		WriteData("%s", "[");
+		for (int i=0; i<binary._len; i++)
+		{
+			WriteData("%02x ", (unsigned char)binary._buf[i]);
+		}
+		WriteData("%s", "]");
 		return *this;
 	}
 
