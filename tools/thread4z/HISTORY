@@ -16,6 +16,9 @@ HISTORY for Thread4z
  * VERSION 0.2.2 <DATE: 2012.12.21>
  * 	change CLock detail that set mutex's attribute 'PTHREAD_MUTEX_RECURSIVE' under the linux.
  *
+ * VERSION 1.0.0 <DATE: 2013.06.10>
+ * 	update 1.0.0
+ *
  *
  */
    
