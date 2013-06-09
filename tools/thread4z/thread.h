@@ -94,6 +94,11 @@
 _ZSUMMER_BEGIN
 _ZSUMMER_THREAD_BEGIN
 
+//! 线程类封装
+//! 通过继承该类并覆写Run()函数进行使用
+//! Start调用将创建一个线程去执行Run函数.
+//! Wait调用将阻塞当前调用者线程直到CThread线程退出.
+//! Terminate调用将强制终止CThread线程, 改掉用应慎用!
 class CThread
 {
 public:
@@ -114,19 +119,27 @@ private:
 };
 
 
+//! 信号量
+//! Create创建信号量 并指定初始信号数量
+//! Open创建一个已存在的具名信号量
+//! Wait调用 等待信号
+//! Post调用 投递一个信号
 class CSem
 {
 public:
 	CSem();
 	virtual ~CSem();
 public:
-	//linux下忽略参数 maxcount
+	//! initcount 初始化信号量个数
+	//! name 如果不为NULL 则创建一个具名信号量, 可用Open跨进程打开.
 	bool Create(int initcount, const char *  name);
-	//打开一个带名字的信号量对象
+
+	//! 打开一个具名信号量对象
 	bool Open(const char * name);
 
-	//timeout <= 0 为直到有信号才返回 否则超时也会返回
+	//! timeout <= 0 为直到有信号才返回 否则超时也会返回
 	bool Wait(int timeout = 0);
+
 	//发送一个信号
 	bool Post();
 private:
@@ -139,6 +152,11 @@ private:
 #endif
 };
 
+
+//! 线程锁
+//! linux使用递归mutex, windows下使用临界区, 均为递归锁实现.
+//! Lock调用开始锁定资源
+//! Unlock调用释放资源锁定.
 class CLock
 {
 public:
@@ -155,30 +173,27 @@ private:
 #endif
 };
 
-
+//! 快速线程锁
 class CAutoLock
 {
 public:
 	explicit CAutoLock(CLock & lk):m_lock(lk)
 	{
+		m_lock.Lock();
 	}
 	~CAutoLock()
 	{
 		m_lock.UnLock();
-	}
-	inline void Lock()
-	{
-		m_lock.Lock();
 	}
 private:
 	CLock & m_lock;
 };
 
 
+//! 原子操作
 int AtomicAdd(volatile int * pt, int t);
 int AtomicInc(volatile int * pt);
 int AtomicDec(volatile int * pt);
-
 
 
 

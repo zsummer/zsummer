@@ -11,9 +11,10 @@
 
 using namespace std;
 
-
+//! 测试次数
 #define MAX_NUM (10*1000*1000)
 
+//! 测试线程锁
 class CTestLock: public zsummer::thread4z::CThread
 {
 public:
@@ -41,6 +42,8 @@ int CTestLock::ms_ask = 0;
 int CTestLock::ms_data[MAX_NUM]={0};
 zsummer::thread4z::CLock CTestLock::ms_lock;
 
+
+//! 测试原子操作
 class CTestAtom: public zsummer::thread4z::CThread
 {
 public:
@@ -57,13 +60,13 @@ public:
 			}
 			ms_data[index] = index;
 		}
-		printf("test atom thread:%d exit\n", (int)GetThread());
+		printf("test atom thread:%x exit\n", (int)GetThread());
 	}
 };
 int CTestAtom::ms_ask = 0;
 int CTestAtom::ms_data[MAX_NUM] = {0};
 
-
+//! 测试信号量
 class CTestSem: public zsummer::thread4z::CThread
 {
 public:
@@ -91,13 +94,13 @@ public:
 				break;
 			}
 		}
-		printf("\ntest CSem thread:%d exit\n", (int)GetThread());
+		printf("\ntest CSem thread:%x exit\n", (int)GetThread());
 	}
 };
 int CTestSem::ms_ask = 1000;
 zsummer::thread4z::CSem CTestSem::ms_sem;
 
-
+//! 测试具名信号量
 class CTestNamedSem: public zsummer::thread4z::CThread
 {
 public:
@@ -130,10 +133,13 @@ public:
 				break;
 			}
 		}
-		printf("\ntest named CSem thread:%d exit\n", (int)GetThread());
+		printf("\ntest named CSem thread:%x exit\n", (int)GetThread());
 	}
 };
 int CTestNamedSem::ms_ask = 1000;
+
+
+
 
 int main(int argc, char* argv[])
 {
@@ -219,8 +225,8 @@ int main(int argc, char* argv[])
 		test2.Wait();
 	}
 
-	int n;
-	cin >>n;
+	cout <<"press any key to exit ..." << endl;
+	getchar();
 	return 0;
 }
 

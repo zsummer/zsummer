@@ -1,5 +1,38 @@
-// asio_client.cpp : 定义控制台应用程序的入口点。
-//
+/*
+* ZSUMMER License
+* -----------
+* 
+* ZSUMMER is licensed under the terms of the MIT license reproduced below.
+* This means that ZSUMMER is free software and can be used for both academic
+* and commercial purposes at absolutely no cost.
+* 
+* 
+* ===============================================================================
+* 
+* Copyright (C) 2012-2013 YaweiZhang <yawei_zhang@foxmail.com>.
+* 
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* 
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+* THE SOFTWARE.
+* 
+* ===============================================================================
+* 
+* (end of COPYRIGHT)
+*/
 
 #define _WIN32_WINNT 0x0501
 #define WIN32_LEAN_AND_MEAN	
@@ -23,6 +56,8 @@ using namespace boost;
 static int g_recvmsgs = 0;
 static char g_senddata[_BUF_LEN];
 
+#define SEND_INTERVAL 10
+
 
 class CClient
 {
@@ -36,7 +71,7 @@ public:
 	{
 		memset(m_recvbuf, 0 , sizeof(m_recvbuf));
 		m_type = 0;
-		m_time.expires_from_now(boost::posix_time::milliseconds(1000+rand()%30000));
+		m_time.expires_from_now(boost::posix_time::milliseconds(1000+rand()%10000));
 		m_time.async_wait(boost::bind(&CClient::TimeOut, this, _1));
 	}
 	bool Connect(const char * ip, unsigned short port)
@@ -92,7 +127,7 @@ public:
 			cout <<"ERR: "  << boost::system::system_error(error).what() << endl;
 			return ;
 		}
-		m_time.expires_from_now(boost::posix_time::milliseconds(700+rand()%600));
+		m_time.expires_from_now(boost::posix_time::milliseconds(SEND_INTERVAL+rand()%600));
 		m_time.async_wait(boost::bind(&CClient::TimeOut, this, _1));
 	}
 
@@ -167,7 +202,7 @@ int main(int argc, char* argv[])
 	timer.expires_from_now(boost::posix_time::milliseconds(1000));
 	timer.async_wait(&Moniter);
 
-	srand(time(NULL));
+	srand((unsigned int)time(NULL));
 
 	std::string ip;
 	unsigned short port = 0;
