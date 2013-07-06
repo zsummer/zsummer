@@ -70,11 +70,12 @@ namespace zsummer
 
 	enum LINK_STATUS
 	{
-		LS_NORMAL,
+		LS_UNINITIALIZE,
 		LS_ESTABLISHED,
 		LS_WAITCLOSE,
 		LS_WAITCLEAR,
 	};
+
 	enum POST_COM_KEY
 	{
 		PCK_IOCP_EXIT = 1,

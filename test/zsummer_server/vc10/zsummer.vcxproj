@@ -25,11 +25,12 @@
     <ClInclude Include="..\..\..\network\iocp\tcpsocket.h" />
     <ClInclude Include="..\..\..\network\SocketInterface.h" />
     <ClInclude Include="..\..\..\tools\log4z\log4z.h" />
+    <ClInclude Include="..\..\..\tools\protocol4z\protocol4z.h" />
     <ClInclude Include="..\..\..\tools\thread4z\thread.h" />
     <ClInclude Include="..\..\..\utility\utility.h" />
     <ClInclude Include="..\Client.h" />
     <ClInclude Include="..\header.h" />
-    <ClInclude Include="..\IOServer.h" />
+    <ClInclude Include="..\Process.h" />
     <ClInclude Include="..\Schedule.h" />
   </ItemGroup>
   <ItemGroup>
@@ -41,7 +42,7 @@
     <ClCompile Include="..\..\..\tools\thread4z\thread.cpp" />
     <ClCompile Include="..\..\..\utility\utility.cpp" />
     <ClCompile Include="..\Client.cpp" />
-    <ClCompile Include="..\IOServer.cpp" />
+    <ClCompile Include="..\Process.cpp" />
     <ClCompile Include="..\main.cpp" />
     <ClCompile Include="..\Schedule.cpp" />
   </ItemGroup>

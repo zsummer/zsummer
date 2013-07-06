@@ -43,7 +43,7 @@
 #include "header.h"
 
 //! 前向声明
-class CIOServer;
+class CProcess;
 
 //! 上层Socekt Client的二次封装
 class CClient :public ITcpSocketCallback
@@ -51,13 +51,13 @@ class CClient :public ITcpSocketCallback
 public:
 	CClient();
 	~CClient();
-	void InitSocket(CIOServer *ios, ITcpSocket *s);
+	void InitSocket(CProcess *ios, ITcpSocket *s);
 	virtual bool OnRecv();
 	virtual bool OnConnect(bool bConnected);
 	virtual bool OnSend();
 	virtual bool OnClose();
 
-	CIOServer  * m_ios;
+	CProcess  * m_ios;
 	ITcpSocket * m_socket;
 	
 	//! 每个消息包分两次分别读取头部和包体

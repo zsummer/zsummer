@@ -80,8 +80,10 @@ CTcpSocket::CTcpSocket()
 	m_connectHandle._type = tagReqHandle::HANDLE_CONNECT;
 
 	//status
-	m_nReqCount = 0;
-	m_nLinkStatus = LS_NORMAL;
+	m_isRecving = false;
+	m_isSending = false;
+	m_isConnecting = false;
+	m_nLinkStatus = LS_UNINITIALIZE;
 	m_nNeedDelete = 0;
 }
 
@@ -90,7 +92,7 @@ CTcpSocket::~CTcpSocket()
 {
 	if (m_socket != INVALID_SOCKET)
 	{
-		closesocket(m_socket);
+		LCF("Destruct CTcpSocket Error. socket handle not invalid, socket=" << (unsigned int)m_socket);
 		m_socket = INVALID_SOCKET;
 	}
 }
@@ -103,7 +105,7 @@ bool CTcpSocket::BindIOServer(IIOServer * ios)
 		m_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 		if (m_socket == INVALID_SOCKET)
 		{
-			LCE("WSASocket create ERROR! ERRCODE=" << WSAGetLastError());
+			LCE("connecter create socket  error! ERRCODE=" << WSAGetLastError());
 			return false;
 		}
 		SOCKADDR_IN addr;
@@ -111,14 +113,14 @@ bool CTcpSocket::BindIOServer(IIOServer * ios)
 		addr.sin_family = AF_INET;
 		if (bind(m_socket, (sockaddr *) &addr, sizeof(SOCKADDR_IN)) != 0)
 		{
-			LCE("bind any addr for connect err!  last err=" << WSAGetLastError());
+			LCE("connecter bind local addr error!  socket=" << (unsigned int)m_socket << ", ERRCODE=" << WSAGetLastError());
 			return false;
 		}
 	}
 
 	if (CreateIoCompletionPort((HANDLE)m_socket, ((CIOServer *)m_ios)->m_io, (ULONG_PTR)this, 1) == NULL)
 	{
-		LCE("bind to IOCP err!");
+		LCE("bind socket to IOCP error. socket="<< (unsigned int) m_socket << ", ERRCODE=" << GetLastError());
 		closesocket(m_socket);
 		m_socket = INVALID_SOCKET;
 		return false;
@@ -142,12 +144,22 @@ bool CTcpSocket::DoConnect(const char *ip, unsigned short port)
 {
 	if (m_cb == NULL)
 	{
-		LCF("callback not set!");
+		LCF("CTcpSocket::DoConnect callback pointer uninitialize. socket=" << (unsigned int)m_socket);
 		return false;
 	}
 	if (m_ios == NULL)
 	{
-		LCF("IIOServer not bind!");
+		LCF("CTcpSocket::DoConnect IIOServer pointer uninitialize.socket=" << (unsigned int) m_socket);
+		return false;
+	}
+	if (m_nLinkStatus != LS_UNINITIALIZE)
+	{
+		LCF("CTcpSocket::DoConnect socket already used. socket="<<(unsigned int) m_socket);
+		return false;
+	}
+	if (m_isConnecting)
+	{
+		LCF("CTcpSocket::DoConnect socket is connecting. socket="<<(unsigned int) m_socket);
 		return false;
 	}
 
@@ -156,7 +168,7 @@ bool CTcpSocket::DoConnect(const char *ip, unsigned short port)
 	DWORD dwSize = 0;
 	if (WSAIoctl(m_socket, SIO_GET_EXTENSION_FUNCTION_POINTER, &gid, sizeof(gid), &lpConnectEx, sizeof(lpConnectEx), &dwSize, NULL, NULL) != 0)
 	{
-		LCE("Get ConnectEx pointer err!  last err= "<< WSAGetLastError());
+		LCE("Get ConnectEx pointer err!  socket="<< (unsigned int) m_socket <<", ERRCODE= "<< WSAGetLastError());
 		return false;
 	}
 
@@ -170,12 +182,12 @@ bool CTcpSocket::DoConnect(const char *ip, unsigned short port)
 	{
 		if (WSAGetLastError() != ERROR_IO_PENDING)
 		{
-			LCE(" do ConnectEx err! ERRCODE=" << WSAGetLastError());
+			LCE("CTcpSocket::DoConnect DoConnect failed and ERRCODE!=ERROR_IO_PENDING, socket="<< (unsigned int) m_socket << ", ERRCODE=" << WSAGetLastError());
 			return false;
 		}
 
 	}
-	m_nReqCount ++;
+	m_isConnecting = true;
 	return true;
 }
 
@@ -192,20 +204,30 @@ bool CTcpSocket::DoSend(char * buf, unsigned int len)
 {
 	if (m_cb == NULL)
 	{
-		LCE("callback not set!");
+		LCF("CTcpSocket::DoSend callback pointer uninitialize. socket=" << (unsigned int)m_socket);
 		return false;
 	}
 	if (m_ios == NULL)
 	{
-		LCE("IIOServer not bind!");
+		LCF("CTcpSocket::DoSend IIOServer pointer uninitialize.socket=" << (unsigned int) m_socket);
+		return false;
+	}
+	if (m_nLinkStatus != LS_ESTABLISHED)
+	{
+		LCF("CTcpSocket::DoSend socket status != LS_ESTABLISHED. socket="<<(unsigned int) m_socket);
+		return false;
+	}
+	if (m_isSending)
+	{
+		LCF("CTcpSocket::DoSend socket is sending. socket="<<(unsigned int) m_socket);
+		return false;
+	}
+	if (len == 0)
+	{
+		LCF("CTcpSocket::DoSend length is 0. socket="<<(unsigned int) m_socket);
 		return false;
 	}
 
-	if (len == 0)
-	{
-		LCE("argument err! len ==0");
-		return false;
-	}
 	m_sendUserBuf = buf;
 	m_sendTotal = len;
 	m_sendOffset = 0;
@@ -217,11 +239,11 @@ bool CTcpSocket::DoSend(char * buf, unsigned int len)
 	{
 		if (WSAGetLastError() != WSA_IO_PENDING)
 		{
-			LCD("ERR: WSASend err!");
+			LCE("CTcpSocket::DoSend DoSend failed and ERRCODE!=ERROR_IO_PENDING, socket="<< (unsigned int) m_socket << ", ERRCODE=" << WSAGetLastError());
 			return false;
 		}
 	}
-	m_nReqCount++;
+	m_isSending = true;
 	return true;
 }
 
@@ -230,12 +252,27 @@ bool CTcpSocket::DoRecv(char * buf, unsigned int len)
 {
 	if (m_cb == NULL)
 	{
-		LCF("callback not set!");
+		LCF("CTcpSocket::DoRecv callback pointer uninitialize. socket=" << (unsigned int)m_socket);
 		return false;
 	}
 	if (m_ios == NULL)
 	{
-		LCF("IIOServer not bind!");
+		LCF("CTcpSocket::DoRecv IIOServer pointer uninitialize.socket=" << (unsigned int) m_socket);
+		return false;
+	}
+	if (m_nLinkStatus != LS_ESTABLISHED)
+	{
+		LCF("CTcpSocket::DoRecv socket status != LS_ESTABLISHED. socket="<<(unsigned int) m_socket);
+		return false;
+	}
+	if (m_isRecving)
+	{
+		LCF("CTcpSocket::DoRecv socket is recving. socket="<<(unsigned int) m_socket);
+		return false;
+	}
+	if (len == 0)
+	{
+		LCF("CTcpSocket::DoRecv length is 0. socket="<<(unsigned int) m_socket);
 		return false;
 	}
 
@@ -251,26 +288,25 @@ bool CTcpSocket::DoRecv(char * buf, unsigned int len)
 	{
 		if (WSAGetLastError() != WSA_IO_PENDING)
 		{
-			LCD("ERR: WSARecv err!  last err=" << WSAGetLastError());
+			LCE("CTcpSocket::DoRecv DoRecv failed and ERRCODE!=ERROR_IO_PENDING, socket="<< (unsigned int) m_socket << ", ERRCODE=" << WSAGetLastError());
 			return false;
 		}
 	}
-	m_nReqCount++;
+	m_isRecving = true;
 	return true;
 }
 
 bool CTcpSocket::OnIOCPMessage(BOOL bSuccess, DWORD dwTranceCount, unsigned char cType)
 {
-	m_nReqCount--;
 	if (cType == tagReqHandle::HANDLE_CONNECT)
 	{
+		m_isConnecting = false;
 		if (bSuccess)
 		{
 			m_nLinkStatus = LS_ESTABLISHED;
 		}
 		else
 		{
-			m_nLinkStatus = LS_NORMAL;
 			closesocket(m_socket);
 			m_socket = INVALID_SOCKET;
 		}
@@ -278,17 +314,28 @@ bool CTcpSocket::OnIOCPMessage(BOOL bSuccess, DWORD dwTranceCount, unsigned char
 		return true;
 	}
 
-	if (m_nLinkStatus == LS_WAITCLOSE && m_nReqCount == 0)
-	{
-		m_nLinkStatus = LS_WAITCLEAR;
-		((CIOServer *)m_ios)->PostMsg(PCK_SOCKET_CLOSE, NULL);
-		return true;
-	}
+
 
 	if (cType == tagReqHandle::HANDLE_RECV)
 	{
+		//server side active close.
+		if (!bSuccess)
+		{
+			m_isRecving = false;
+			CloseImlp();
+			return true;
+		}
+		// client side active closed
+		if (dwTranceCount == 0)
+		{
+			m_isRecving = false;
+			CloseImlp();
+			return true;
+		}
+
 		if (dwTranceCount == m_recvTotal - m_recvOffset)
 		{
+			m_isRecving = false;
 			m_cb->OnRecv();
 		}
 		else
@@ -303,17 +350,26 @@ bool CTcpSocket::OnIOCPMessage(BOOL bSuccess, DWORD dwTranceCount, unsigned char
 			{
 				if (WSAGetLastError() != WSA_IO_PENDING)
 				{
-					LCD("WSARecv err!  last err=" << WSAGetLastError());
-					goto doclose;
+					LCE("CTcpSocket::OnIOCPMessage DoRecv failed and ERRCODE!=ERROR_IO_PENDING, socket="<< (unsigned int) m_socket << ", ERRCODE=" << WSAGetLastError());
+					m_isRecving = false;
+					Close();
 				}
 			}
-			m_nReqCount++;
 		}
 	}
 	else if (cType == tagReqHandle::HANDLE_SEND)
 	{
+		//server side active close.
+		if (!bSuccess)
+		{
+			m_isRecving = false;
+			CloseImlp();
+			return true;
+		}
+
 		if (dwTranceCount == m_sendTotal - m_sendOffset)
 		{
+			m_isSending = false;
 			m_cb->OnSend();
 		}
 		else
@@ -327,32 +383,85 @@ bool CTcpSocket::OnIOCPMessage(BOOL bSuccess, DWORD dwTranceCount, unsigned char
 			{
 				if (WSAGetLastError() != WSA_IO_PENDING)
 				{
-					LCD("WSASend err!");
-					goto doclose;
+					LCE("CTcpSocket::OnIOCPMessage DoSend failed and ERRCODE!=ERROR_IO_PENDING, socket="<< (unsigned int) m_socket << ", ERRCODE=" << WSAGetLastError());
+					m_isSending = false;
+					Close();
 				}
 			}
-			m_nReqCount++;
 		}
 	}
-	return true;
-doclose:
-	Close();
 	return true;
 }
 
 
 bool CTcpSocket::Close()
 {
-	if (m_nLinkStatus == LS_NORMAL || m_nLinkStatus == LS_ESTABLISHED)
+	if (m_nLinkStatus == LS_ESTABLISHED)
+	{
+		CloseImlp();
+		return true;
+	}
+	else if (m_nLinkStatus == LS_WAITCLEAR)
+	{
+		LCW("CTcpSocket::Close(),  socket status = LS_WAITCLEAR, socket=" << (unsigned int) m_socket);
+	}
+	else if (m_nLinkStatus == LS_UNINITIALIZE)
+	{
+		LCW("CTcpSocket::Close(),  socket status = LS_UNINITIALIZE, socket=" << (unsigned int) m_socket);
+	}
+	else if (m_nLinkStatus == LS_WAITCLOSE)
+	{
+		LCW("CTcpSocket::Close(),  socket status = LS_WAITCLOSE, socket=" << (unsigned int) m_socket);
+	}
+	return true;
+}
+
+bool CTcpSocket::CloseImlp()
+{
+	if (m_nLinkStatus == LS_ESTABLISHED)
 	{
 		m_nLinkStatus = LS_WAITCLOSE;
 		closesocket(m_socket);
-		if (m_nReqCount == 0)
+		if (!m_isRecving && !m_isSending)
 		{
-			m_nLinkStatus = LS_WAITCLEAR;
-			((CIOServer*)m_ios)->PostMsg(PCK_SOCKET_CLOSE, (ULONG_PTR)this);
+			goto postClear;
 		}
 		return true;
+	}
+	else if (m_nLinkStatus == LS_WAITCLOSE)
+	{
+		if (!m_isRecving && !m_isSending)
+		{
+			goto postClear;
+		}
+		LCI("CTcpSocket::CloseImlp(),  socket status = LS_WAITCLOSE, socket=" << (unsigned int) m_socket);
+	}
+	else if (m_nLinkStatus == LS_WAITCLEAR)
+	{
+		LCW("CTcpSocket::CloseImlp(),  socket status = LS_WAITCLEAR, socket=" << (unsigned int) m_socket);
+	}
+	else if (m_nLinkStatus == LS_UNINITIALIZE)
+	{
+		LCW("CTcpSocket::CloseImlp(),  socket status = LS_UNINITIALIZE, socket=" << (unsigned int) m_socket);
+	}
+
+	return true;
+postClear:
+	m_nLinkStatus = LS_WAITCLEAR;
+	if (m_ios)
+	{
+		((CIOServer*)m_ios)->PostMsg(PCK_SOCKET_CLOSE, (ULONG_PTR)this);
+	}
+	else
+	{
+		LCW("CTcpSocket::Close() IOServer uninitialize.  socket=" << (unsigned int) m_socket);
+		m_nLinkStatus = LS_UNINITIALIZE;
+		m_socket = INVALID_SOCKET;
+		if (m_nNeedDelete != 0)
+		{
+			DestroyTcpSocket(this);
+		}
+		m_nNeedDelete = 0;
 	}
 	return true;
 }
@@ -360,6 +469,8 @@ bool CTcpSocket::Close()
 void CTcpSocket::OnClear()
 {
 	m_cb->OnClose();
+	m_nLinkStatus = LS_UNINITIALIZE;
+	m_socket = INVALID_SOCKET;
 	if (m_nNeedDelete != 0)
 	{
 		DestroyTcpSocket(this);

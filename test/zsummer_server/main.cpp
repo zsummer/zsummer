@@ -40,7 +40,7 @@
 
 #include "header.h"
 #include "Schedule.h"
-#include "IOServer.h"
+#include "Process.h"
 using namespace zsummer::log4z;
 int g_nTotalLinked = 0;
 int g_nTotalCloesed = 0;
@@ -83,14 +83,14 @@ int main(int argc, char* argv[])
 		unsigned long long temp2 = 0;
 		unsigned long long temp3 = 0;
 		unsigned long long temp4 = 0;
-		for (std::vector<CIOServer *>::const_iterator iter = schedule.m_process.begin(); iter != schedule.m_process.end(); ++iter)
+		for (std::vector<CProcess *>::const_iterator iter = schedule.m_process.begin(); iter != schedule.m_process.end(); ++iter)
 		{
 			temp1 += (*iter)->GetTotalRecvLen();
 			temp2 += (*iter)->GetTotalSendLen();
 			temp3 += (*iter)->GetTotalRecvCount();
 			temp4 += (*iter)->GetTotalSendCount();
 		}
-		LOGI("TotalLinked:" << g_nTotalLinked 
+		LOGD("TotalLinked:" << g_nTotalLinked 
 			<<",  TotalClosed:" << g_nTotalCloesed
 			<< " \n\t"
 

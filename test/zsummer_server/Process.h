@@ -34,61 +34,51 @@
  * (end of COPYRIGHT)
  */
 
-#include "IOServer.h"
-#include "Client.h"
 
-CIOServer::CIOServer()
+//! zsummer的测试服务模块(对应zsummer底层网络封装的上层设计测试服务) 可视为服务端架构中的 gateway服务/agent服务/前端服务, 特点是高并发高吞吐量
+//! IOServer头文件 该类负责处理Schedule抛过来的client socket. 每个IOServer独立一个线程.
+
+#ifndef ZSUMMER_PROCESS_H_
+#define ZSUMMER_PROCESS_H_
+
+#include "header.h"
+
+class CProcess : public CThread, public IIOServerCallback
 {
-	m_ios = NULL;
-	m_nTotalRecvLen = 0;
-	m_nTotalSendLen = 0;
-	m_nTotalRecvCount = 0;
-	m_nTotalSendCount = 0;
-}
+public:
+	CProcess();
+	//! 启动与停止
+	bool Start();
+	void Stop();
+	//! 线程
+	virtual void Run();
+	//! 投递线程间消息 当前设计仅供Schedule投递client socket用
+	virtual void Post(void * pUser);
+	//!IOServer被安全停止
+	virtual bool OnStop();
+	//！收到线程消息 
+	virtual bool OnMsg(void *pUser);
+	virtual bool OnTimer();
 
-bool CIOServer::Start()
-{
-	m_ios = CreateIOServer();
-	if (!m_ios->Start(this))
-	{
-		LOGE("process start fail!");
-		return false;
-	}
-	return CThread::Start();
-}
+	//! 一些状态统计用接口
+	inline unsigned long long GetTotalRecvLen() {return m_nTotalRecvLen;}
+	inline void AddTotalRecvLen(unsigned long long len) { m_nTotalRecvLen += len;}
 
-void CIOServer::Stop()
-{
-	m_ios->Stop();
-}
+	inline unsigned long long GetTotalSendLen() {return m_nTotalSendLen;}
+	inline void AddTotalSendLen(unsigned long long len) { m_nTotalSendLen += len;}
 
-void CIOServer::Run()
-{
-	m_ios->Run();
-}
+	inline unsigned long long GetTotalRecvCount() {return m_nTotalRecvCount;}
+	inline void AddTotalRecvCount(unsigned long long len) { m_nTotalRecvCount += len;}
 
-void CIOServer::Post(void * pUser)
-{
-	m_ios->Post(pUser);
-}
+	inline unsigned long long GetTotalSendCount() {return m_nTotalSendCount;}
+	inline void AddTotalSendCount(unsigned long long len) { m_nTotalSendCount += len;}
+	
+private:
+	IIOServer * m_ios;
+	unsigned long long  m_nTotalRecvLen;
+	unsigned long long  m_nTotalSendLen;
+	unsigned long long  m_nTotalRecvCount;
+	unsigned long long  m_nTotalSendCount;
+};
 
-bool CIOServer::OnStop()
-{
-	return true;
-}
-//来自Schedule的消息
-bool CIOServer::OnMsg(void *pUser)
-{
-	ITcpSocket * s = (ITcpSocket *) pUser;
-	CClient * p = new CClient;
-	s->BindIOServer(m_ios);
-	p->InitSocket(this, s);
-	return true;
-}
-
- bool CIOServer::OnTimer()
- {
-	// LOGD("CIOServer::OnTimer():" << GetTimeMillisecond());
-	 return true;
- }
-
+#endif

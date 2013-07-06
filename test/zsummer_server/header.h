@@ -57,10 +57,9 @@ using namespace zsummer::thread4z;
 using namespace zsummer::network;
 
 //! 消息包缓冲区大小
-#define _MSG_BUF_LEN	(5*1024)
+#define _MSG_BUF_LEN	(8*1024)
 
-//! 消息长度 应该小于_MSG_BUF_LEN
-#define _MSG_LEN   (5000)
+
 
 //! 消息包 小头序 union可优雅的减少一次显示强制转换
 union Packet

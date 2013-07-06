@@ -35,8 +35,8 @@
  */
 
 #include "Client.h"
-#include "IOServer.h"
-
+#include "Process.h"
+#include "../../tools/protocol4z/protocol4z.h"
 CClient::CClient()
 {
 	m_ios = NULL;
@@ -51,13 +51,13 @@ CClient::~CClient()
 {
 }
 
-void CClient::InitSocket(CIOServer *ios, ITcpSocket *s)
+void CClient::InitSocket(CProcess *ios, ITcpSocket *s)
 {
 	m_ios = ios;
 	m_socket = s;
 	m_socket->SetCallback(this);
 
-	m_socket->DoRecv((char*)&m_recving._head, 2);
+	m_socket->DoRecv(m_recving._body, 2);
 }
 
 bool CClient::OnRecv()
@@ -67,9 +67,9 @@ bool CClient::OnRecv()
 	if (m_type == 1)
 	{
 		m_type = 2;
-		if (m_recving._head <= 2 || m_recving._head >= _MSG_LEN)
+		if (m_recving._head > _MSG_BUF_LEN || m_recving._head <= 2)
 		{
-			LOGE("recv body len = " << m_recving._head);
+			LOGE("killed socket: recved error header len:" << m_recving._head);
 			m_socket->Close();
 			return false;
 		}
@@ -81,19 +81,61 @@ bool CClient::OnRecv()
 		m_recving._body[m_recving._head] = '\0';
 		m_ios->AddTotalRecvLen(m_recving._head);
 		//LOGD("recv msg: " << m_recving._body+2);
+		zsummer::protocol4z::ReadStream rs(m_recving._body, m_recving._head);
+		unsigned short protocolID = 0;
+		unsigned short requestID = 0;
+		unsigned long long counter = 0;
+		std::string text;
+		try
+		{
+			rs >> protocolID >> requestID >>counter >> text;
+		}
+		catch (std::runtime_error e)
+		{
+			LOGE("recv msg catch one exception: "<< e.what() );
+			m_socket->Close();
+			return false;
+		}
+		//begin logic
+		counter++;
+		//end logic
+
 		if (m_sending._head != 0)
 		{
-			Packet * p =new Packet;
-			memcpy(p, &m_recving, sizeof(Packet));
-			m_sendque.push(p);
+			Packet *p = new Packet;
+			zsummer::protocol4z::WriteStream ws(p->_body, _MSG_BUF_LEN);
+			try
+			{
+				ws << protocolID << requestID << counter << text;
+				m_sendque.push(p);
+			}
+			catch (std::runtime_error e)
+			{
+				delete p;
+				LOGE("send msg catch one exception: "<< e.what() );
+				m_socket->Close();
+				return false;
+			}
+
 		}
 		else
 		{
-			memcpy(&m_sending, &m_recving, sizeof(Packet));
-			m_socket->DoSend((char*)&m_sending._body, m_sending._head);
+			zsummer::protocol4z::WriteStream ws(m_sending._body, _MSG_BUF_LEN);
+			try
+			{
+				ws << protocolID << requestID << counter << text;
+
+			}
+			catch (std::runtime_error e)
+			{
+				LOGE("send msg catch one exception: "<< e.what() );
+				m_socket->Close();
+				return false;
+			}
+			m_socket->DoSend(m_sending._body, m_sending._head);
 		}
 		m_type = 1;
-		m_socket->DoRecv((char*)&m_recving._head, 2);
+		m_socket->DoRecv(m_recving._body, 2);
 	}
 	return true;
 }

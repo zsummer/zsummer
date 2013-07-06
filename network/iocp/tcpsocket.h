@@ -55,6 +55,7 @@ namespace zsummer
 		virtual bool DoSend(char * buf, unsigned int len);
 		virtual bool DoRecv(char * buf, unsigned int len);
 		virtual bool Close();
+		bool CloseImlp();
 
 		void OnClear();
 
@@ -86,9 +87,11 @@ namespace zsummer
 		tagReqHandle m_connectHandle;
 
 		//status
-		int m_nReqCount;
+		bool m_isRecving;
+		bool m_isSending;
+		bool m_isConnecting;
 		int m_nLinkStatus;
-		int m_nNeedDelete;
+		int m_nNeedDelete; //! 0 uninitialize, 1 normal, 2 need, 3 cloesed.
 	};
 }
 

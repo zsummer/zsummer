@@ -37,7 +37,7 @@
 
 #include "Schedule.h"
 
-#include "IOServer.h"
+#include "Process.h"
 
 CSchedule::CSchedule()
 {
@@ -46,9 +46,9 @@ CSchedule::CSchedule()
 
 void CSchedule::Start()
 {
-	for (int i=0; i< 2; i++)
+	for (int i=0; i< 1; i++)
 	{
-		CIOServer * p = new CIOServer;
+		CProcess * p = new CProcess;
 		if (p->Start())
 		{
 			m_process.push_back(p);
@@ -64,7 +64,15 @@ void CSchedule::Start()
 	m_accept = CreateTcpAccept();
 	m_accept->SetCallbck(this);
 	m_accept->BindIOServer(m_ios);
-	m_accept->OpenAccept("0.0.0.0", 81);
+	if (m_accept->OpenAccept("0.0.0.0", 81))
+	{
+		LOGI("OpenAccept 81 success");
+	}
+	else
+	{
+		LOGF("OpenAccept 81 failed");
+		return;
+	}
 	CThread::Start();
 }
 void CSchedule::Stop()

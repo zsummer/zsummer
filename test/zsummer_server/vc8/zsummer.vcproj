@@ -257,15 +257,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\IOServer.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\IOServer.h"
-				>
-			</File>
-			<File
 				RelativePath="..\main.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Process.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Process.h"
 				>
 			</File>
 			<File

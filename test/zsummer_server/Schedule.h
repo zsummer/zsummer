@@ -41,7 +41,7 @@
 #ifndef ZSUMMER_SCHEDULE_H_
 #define ZSUMMER_SCHEDULE_H_
 #include "header.h"
-class CIOServer;
+class CProcess;
 class CSchedule :public ITcpAcceptCallback, public IIOServerCallback, public CThread
 {
 public:
@@ -62,7 +62,7 @@ public:
 	IIOServer * m_ios;
 
 	//! IOServer³Ø
-	std::vector<CIOServer *> m_process;
+	std::vector<CProcess *> m_process;
 	int						m_iCurProcess;
 };
 

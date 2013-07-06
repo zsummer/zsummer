@@ -69,7 +69,7 @@ CTcpAccept::CTcpAccept()
 
 	//status
 	m_nAcceptCount = 0;
-	m_nLinkStatus = LS_NORMAL;
+	m_nLinkStatus = LS_UNINITIALIZE;
 }
 CTcpAccept::~CTcpAccept()
 {

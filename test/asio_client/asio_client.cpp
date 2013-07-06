@@ -46,17 +46,17 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-
+#include "../../tools/protocol4z/protocol4z.h"
 using namespace std;
 using namespace boost;
 
-#define _BUF_LEN	(5*1024)
-#define _SEND_LEN   (1024)
+#define _BUF_LEN	(8*1024)
+
 
 static int g_recvmsgs = 0;
 static char g_senddata[_BUF_LEN];
 
-#define SEND_INTERVAL 10
+#define SEND_INTERVAL 5000
 
 
 class CClient
@@ -71,7 +71,7 @@ public:
 	{
 		memset(m_recvbuf, 0 , sizeof(m_recvbuf));
 		m_type = 0;
-		m_time.expires_from_now(boost::posix_time::milliseconds(1000+rand()%10000));
+		m_time.expires_from_now(boost::posix_time::milliseconds(1000+rand()%1000));
 		m_time.async_wait(boost::bind(&CClient::TimeOut, this, _1));
 	}
 	bool Connect(const char * ip, unsigned short port)
@@ -83,40 +83,89 @@ public:
 	{
 		if (error)
 		{
-			cout << "ERR: " << boost::system::system_error(error).what() << endl;
+			cout << "connect error: " << boost::system::system_error(error).what() << endl;
+			m_type = 0;
+			m_time.expires_from_now(boost::posix_time::milliseconds(2000));
+			m_time.async_wait(boost::bind(&CClient::TimeOut, this, _1));
 			return;
 		}
 		else
 		{
-			Send();
+			m_type = 2;
+			m_time.expires_from_now(boost::posix_time::milliseconds(2000));
+			m_time.async_wait(boost::bind(&CClient::TimeOut, this, _1));
 			Recv();
 		}
 	}
 	bool Recv()
 	{
-		m_socket.async_receive(asio::buffer(m_recvbuf, _SEND_LEN), boost::bind(&CClient::OnRecv, this, _1));
+		if (m_type == 2)
+		{
+			m_socket.async_receive(asio::buffer(m_recvbuf, 2), boost::bind(&CClient::OnRecv, this, _1));
+		}
+		else if (m_type == 3)
+		{
+			m_socket.async_receive(asio::buffer(m_recvbuf+2, *(unsigned short *)(m_recvbuf) - 2), boost::bind(&CClient::OnRecv, this, _1));
+		}
+		
 		return true;	
 	}
 	void OnRecv(const boost::system::error_code& error)
 	{
 		if (error)
 		{
-			cout <<"ERR: "  << boost::system::system_error(error).what() << endl;
+			cout <<"recv error: "  << boost::system::system_error(error).what() << endl;
 			m_socket.close();
 			return ;
 		}
-		if (memcmp(m_recvbuf, g_senddata, _SEND_LEN) != 0)
+		if (m_type == 2)
 		{
-			cout << "ERR: recv err:  datalen=" <<*((unsigned short*)m_recvbuf) << " data="  <<m_recvbuf+2 << endl;
-			m_socket.close();
-			return;
+			if (*(unsigned short *)(m_recvbuf) > _BUF_LEN)
+			{
+				cout <<"recv error, type=2: recv error header len:" <<*(unsigned short *)(m_recvbuf) << endl;
+				m_socket.close();
+				return;
+			}
+			else
+			{
+				m_type = 3;
+				Recv();
+			}
 		}
+		else if (m_type == 3)
+		{
+			zsummer::protocol4z::ReadStream rs(m_recvbuf, *(unsigned short *)(m_recvbuf));
+			unsigned short protocolID = 0;
+			unsigned short requestID = 0;
+			unsigned long long counter = 0;
+			std::string text;
+			try
+			{
+				rs >> protocolID >> requestID >> counter>> text;
+				cout << " recv: protocolID=" << protocolID << ", requestID=" << requestID << ", counter=" << counter <<", text=" << text << endl;
+			}
+			catch (std::runtime_error e)
+			{
+				cout <<"protocol error: " << e.what() << endl;
+				m_socket.close();
+				return;
+			}
+			m_type =2;
+			Recv();
+		}
+
 		g_recvmsgs++;
-		Recv();
+		
 	}
 	bool Send()
 	{
-		m_socket.async_send(asio::buffer(g_senddata, _SEND_LEN), boost::bind(&CClient::OnSend, this, _1));
+		unsigned short protocolID = 1;
+		unsigned short requestID = 32;
+		unsigned long long counter = 123;
+		std::string text = "ffffffffffffffffffffffff";
+		zsummer::protocol4z::WriteStream ws(g_senddata, _BUF_LEN);
+		ws << protocolID << requestID << counter << text;
+		m_socket.async_send(asio::buffer(g_senddata, *(unsigned short *)(g_senddata) ), boost::bind(&CClient::OnSend, this, _1));
 		return true;
 	}
 	void OnSend(const boost::system::error_code& error)
@@ -124,7 +173,7 @@ public:
 		if (error)
 		{
 			m_socket.close();
-			cout <<"ERR: "  << boost::system::system_error(error).what() << endl;
+			cout <<"send error: "  << boost::system::system_error(error).what() << endl;
 			return ;
 		}
 		m_time.expires_from_now(boost::posix_time::milliseconds(SEND_INTERVAL+rand()%600));
@@ -135,16 +184,15 @@ public:
 	{
 		if (error)
 		{
-
-			cout <<"ERR: "  << boost::system::system_error(error).what() << endl;
+			cout <<"timmer error: "  << boost::system::system_error(error).what() << endl;
 			return ;
 		}
 		if (m_type == 0)
 		{
-			m_type = 99;
+			m_type = 1;
 			Connect(m_ip.c_str(), m_port);
 		}
-		else
+		else if (m_type > 1)
 		{
 			Send();
 		}
@@ -155,7 +203,7 @@ private:
 	unsigned short m_port;
 	asio::ip::tcp::socket m_socket;
 	asio::deadline_timer m_time;
-	int m_type;
+	int m_type;// 0 init, 1 connect, 2 recved header, 3 recved body.
 	char m_recvbuf[_BUF_LEN];
 };
 
@@ -165,7 +213,7 @@ void Moniter(const boost::system::error_code& error )
 {
 	if (error)
 	{
-		cout <<"ERR: "  << boost::system::system_error(error).what() << endl;
+		cout <<"moniter error: "  << boost::system::system_error(error).what() << endl;
 		return ;
 	}
 	cout << " MONITER:  recvs msg=" << g_recvmsgs << endl;
@@ -176,23 +224,7 @@ void Moniter(const boost::system::error_code& error )
 
 int main(int argc, char* argv[])
 {
-	{
-		memset(g_senddata, 0, sizeof(g_senddata));
-		char tmpt[] = "001234567890abcdefghijklmnopqrstuvwxyz";
 
-		int j = 0;
-		for (int i=0; i<_BUF_LEN; i++)
-		{
-			g_senddata[i] = tmpt[j];
-			j++;
-			if (j == sizeof(tmpt)-1)
-			{
-				j = 0;
-			}
-		}
-		unsigned short len = _SEND_LEN;
-		memcpy(g_senddata, &len, 2);
-	}
 
 
 	asio::io_service ios;
@@ -214,13 +246,11 @@ int main(int argc, char* argv[])
 	cout << "stress client num:" << endl;
 	cin >> maxn;
 	cout <<" zsummer's server info: [" << ip << ":" << port << "]  stress clients:" << maxn << endl;
-	cout << "press any key to continue.";
 	if (!cin)
 	{
 		return -1;
 	}
-	getchar();
-	getchar();
+
 	for (int i=0; i<maxn; i++)
 	{
 		CClient * p = new CClient(ios, ip, port);
