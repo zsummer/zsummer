@@ -185,7 +185,7 @@ public:
 	{
 		if (m_curLen + len > m_bufLen)
 		{
-			throw std::out_of_range("out of range");
+			throw std::runtime_error("out of range");
 		}
 		if (len == 0)
 		{
@@ -329,7 +329,7 @@ public:
 	{
 		if (m_curLen + len > m_bufLen)
 		{
-			throw std::out_of_range("out of range");
+			throw std::runtime_error("out of range");
 		}
 		return &m_buf[m_curLen];
 	}
@@ -337,7 +337,7 @@ public:
 	{
 		if (m_curLen + len > m_bufLen)
 		{
-			throw std::out_of_range("out of range");
+			throw std::runtime_error("out of range");
 		}
 		m_curLen += len;
 	}
@@ -366,7 +366,8 @@ public:
 	{
 		unsigned short len = 0;
 		ReadSimpleData(len);
-		data.assign(PeekContentData(len), len);
+		const char * p = PeekContentData(len);
+		data.assign(p, len);
 		SkipContentData(len);
 		return *this;
 	}

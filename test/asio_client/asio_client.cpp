@@ -47,6 +47,7 @@
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include "../../tools/protocol4z/protocol4z.h"
+#include "../../utility/utility.h"
 using namespace std;
 using namespace boost;
 
@@ -55,6 +56,8 @@ using namespace boost;
 
 static int g_recvmsgs = 0;
 static char g_senddata[_BUF_LEN];
+
+static int g_timeout[10]; // 0~9ms 10~19ms, 20~29ms
 
 #define SEND_INTERVAL 5000
 
@@ -137,12 +140,23 @@ public:
 			zsummer::protocol4z::ReadStream rs(m_recvbuf, *(unsigned short *)(m_recvbuf));
 			unsigned short protocolID = 0;
 			unsigned short requestID = 0;
+			unsigned int sendtime =0;
 			unsigned long long counter = 0;
 			std::string text;
 			try
 			{
-				rs >> protocolID >> requestID >> counter>> text;
-				cout << " recv: protocolID=" << protocolID << ", requestID=" << requestID << ", counter=" << counter <<", text=" << text << endl;
+				rs >> protocolID >> requestID >> counter>> sendtime >> text;
+				unsigned int now = zsummer::utility::GetTimeMillisecond();
+				now = now - sendtime;
+				if (now /10 > 9)
+				{
+					cout << " recv warning: protocolID=" << protocolID << ", requestID=" << requestID << ", counter=" << counter << "used time=" << now << ", text=" << text << endl;
+				}
+				else
+				{
+					g_timeout[now/10] ++;
+				}
+				//cout << " recv: protocolID=" << protocolID << ", requestID=" << requestID << ", counter=" << counter << "used time=" << now << ", text=" << text << endl;
 			}
 			catch (std::runtime_error e)
 			{
@@ -162,9 +176,10 @@ public:
 		unsigned short protocolID = 1;
 		unsigned short requestID = 32;
 		unsigned long long counter = 123;
+		unsigned int sendtime = zsummer::utility::GetTimeMillisecond();
 		std::string text = "ffffffffffffffffffffffff";
 		zsummer::protocol4z::WriteStream ws(g_senddata, _BUF_LEN);
-		ws << protocolID << requestID << counter << text;
+		ws << protocolID << requestID << counter << sendtime << text;
 		m_socket.async_send(asio::buffer(g_senddata, *(unsigned short *)(g_senddata) ), boost::bind(&CClient::OnSend, this, _1));
 		return true;
 	}
@@ -216,9 +231,14 @@ void Moniter(const boost::system::error_code& error )
 		cout <<"moniter error: "  << boost::system::system_error(error).what() << endl;
 		return ;
 	}
-	cout << " MONITER:  recvs msg=" << g_recvmsgs << endl;
+	cout << " MONITER:  recvs msg=" << g_recvmsgs << ", timeout[";
+	for (int i=0; i<10; i++)
+	{
+		cout <<i*10 << "-" << (i+1)*10-1 << ":" <<g_timeout[i] << "  ";
+	}
+	cout << endl;
 
-	g_ptimer->expires_from_now(boost::posix_time::milliseconds(1000));
+	g_ptimer->expires_from_now(boost::posix_time::milliseconds(5000));
 	g_ptimer->async_wait(&Moniter);
 }
 
@@ -250,11 +270,12 @@ int main(int argc, char* argv[])
 	{
 		return -1;
 	}
-
+	memset(g_timeout, 0, sizeof(g_timeout));
 	for (int i=0; i<maxn; i++)
 	{
 		CClient * p = new CClient(ios, ip, port);
 	}
+
 
 	
 	ios.run();

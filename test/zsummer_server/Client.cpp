@@ -85,10 +85,11 @@ bool CClient::OnRecv()
 		unsigned short protocolID = 0;
 		unsigned short requestID = 0;
 		unsigned long long counter = 0;
+		unsigned int sendtime = 0;
 		std::string text;
 		try
 		{
-			rs >> protocolID >> requestID >>counter >> text;
+			rs >> protocolID >> requestID >>counter >> sendtime >> text;
 		}
 		catch (std::runtime_error e)
 		{
@@ -106,7 +107,7 @@ bool CClient::OnRecv()
 			zsummer::protocol4z::WriteStream ws(p->_body, _MSG_BUF_LEN);
 			try
 			{
-				ws << protocolID << requestID << counter << text;
+				ws << protocolID << requestID << counter << sendtime << text;
 				m_sendque.push(p);
 			}
 			catch (std::runtime_error e)
@@ -123,7 +124,7 @@ bool CClient::OnRecv()
 			zsummer::protocol4z::WriteStream ws(m_sending._body, _MSG_BUF_LEN);
 			try
 			{
-				ws << protocolID << requestID << counter << text;
+				ws << protocolID << requestID << counter << sendtime << text;
 
 			}
 			catch (std::runtime_error e)
