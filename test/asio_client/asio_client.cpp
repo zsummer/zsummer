@@ -57,7 +57,8 @@ using namespace boost;
 static int g_recvmsgs = 0;
 static char g_senddata[_BUF_LEN];
 
-static int g_timeout[10]; // 0~9ms 10~19ms, 20~29ms
+static int g_usetime1[10]; // 0~9ms
+static int g_usetime2[10]; // (0~10)*10ms
 
 #define SEND_INTERVAL 5000
 
@@ -148,13 +149,23 @@ public:
 				rs >> protocolID >> requestID >> counter>> sendtime >> text;
 				unsigned int now = zsummer::utility::GetTimeMillisecond();
 				now = now - sendtime;
-				if (now /10 > 9)
+
+				if (now >= 100)
 				{
 					cout << " recv warning: protocolID=" << protocolID << ", requestID=" << requestID << ", counter=" << counter << "used time=" << now << ", text=" << text << endl;
 				}
 				else
 				{
-					g_timeout[now/10] ++;
+					if (now < 10)
+					{
+						g_usetime1[now] ++;
+					}
+					else
+					{
+						g_usetime2[now/10] ++;
+					}
+					
+					
 				}
 				//cout << " recv: protocolID=" << protocolID << ", requestID=" << requestID << ", counter=" << counter << "used time=" << now << ", text=" << text << endl;
 			}
@@ -231,12 +242,22 @@ void Moniter(const boost::system::error_code& error )
 		cout <<"moniter error: "  << boost::system::system_error(error).what() << endl;
 		return ;
 	}
-	cout << " MONITER:  recvs msg=" << g_recvmsgs << ", timeout[";
+	cout << " MONITER:  recvs msg=" << g_recvmsgs << ", use time[";
 	for (int i=0; i<10; i++)
 	{
-		cout <<i*10 << "-" << (i+1)*10-1 << ":" <<g_timeout[i] << "  ";
+		if (g_usetime1[i] > 0)
+		{
+			cout <<i << "ms:"<<g_usetime1[i] << "  ";
+		}
 	}
-	cout << endl;
+	for (int i=0; i<10; i++)
+	{
+		if (g_usetime2[i] > 0)
+		{
+			cout <<i*10 << "ms:"<<g_usetime2[i] << "  ";
+		}
+	}
+	cout << "] " << endl;
 
 	g_ptimer->expires_from_now(boost::posix_time::milliseconds(5000));
 	g_ptimer->async_wait(&Moniter);
@@ -270,7 +291,8 @@ int main(int argc, char* argv[])
 	{
 		return -1;
 	}
-	memset(g_timeout, 0, sizeof(g_timeout));
+	memset(g_usetime1, 0, sizeof(g_usetime1));
+	memset(g_usetime2, 0, sizeof(g_usetime2));
 	for (int i=0; i<maxn; i++)
 	{
 		CClient * p = new CClient(ios, ip, port);
