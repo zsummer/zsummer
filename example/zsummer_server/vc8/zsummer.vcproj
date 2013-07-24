@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="asio_client"
-	ProjectGUID="{0A0742E2-F4F6-4821-8585-43CC74E28AAC}"
-	RootNamespace="asio_client"
+	Name="zsummer"
+	ProjectGUID="{5ADAF75E-7208-4BBE-86FA-D60EB3F722B6}"
+	RootNamespace="zsummer"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -17,10 +17,10 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="../bin/"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			CharacterSet="2"
+			CharacterSet="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -95,8 +95,8 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			CharacterSet="2"
-			WholeProgramOptimization="1"
+			CharacterSet="1"
+			WholeProgramOptimization="0"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -115,12 +115,11 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				InlineFunctionExpansion="2"
-				EnableIntrinsicFunctions="true"
-				FavorSizeOrSpeed="1"
+				Optimization="0"
+				WholeProgramOptimization="false"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
-				RuntimeLibrary="2"
-				UsePrecompiledHeader="2"
+				RuntimeLibrary="0"
+				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
@@ -173,55 +172,123 @@
 	</References>
 	<Files>
 		<Filter
-			Name="源文件"
+			Name="log"
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\asio_client.cpp"
+				RelativePath="..\..\..\depends\log4z\log4z.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\stdafx.cpp"
+				RelativePath="..\..\..\depends\log4z\log4z.h"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"
-					/>
-				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
-			Name="头文件"
+			Name="network"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\stdafx.h"
+				RelativePath="..\..\..\network\iocp\iocp.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\network\iocp\iocp.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\network\iocp\public.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\network\iocp\public.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\network\SocketInterface.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\network\iocp\tcpaccept.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\network\iocp\tcpaccept.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\network\iocp\tcpsocket.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\network\iocp\tcpsocket.h"
 				>
 			</File>
 		</Filter>
 		<Filter
-			Name="资源文件"
+			Name="thread"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
+			<File
+				RelativePath="..\..\..\depends\thread4z\thread.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\depends\thread4z\thread.h"
+				>
+			</File>
 		</Filter>
-		<File
-			RelativePath=".\ReadMe.txt"
+		<Filter
+			Name="main"
 			>
-		</File>
+			<File
+				RelativePath="..\Client.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Client.h"
+				>
+			</File>
+			<File
+				RelativePath="..\header.h"
+				>
+			</File>
+			<File
+				RelativePath="..\main.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Process.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Process.h"
+				>
+			</File>
+			<File
+				RelativePath="..\Schedule.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Schedule.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="utility"
+			>
+			<File
+				RelativePath="..\..\..\utility\utility.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\utility\utility.h"
+				>
+			</File>
+		</Filter>
 	</Files>
 	<Globals>
 	</Globals>

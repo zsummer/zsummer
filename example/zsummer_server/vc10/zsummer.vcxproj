@@ -24,9 +24,9 @@
     <ClInclude Include="..\..\..\network\iocp\tcpaccept.h" />
     <ClInclude Include="..\..\..\network\iocp\tcpsocket.h" />
     <ClInclude Include="..\..\..\network\SocketInterface.h" />
-    <ClInclude Include="..\..\..\tools\log4z\log4z.h" />
-    <ClInclude Include="..\..\..\tools\protocol4z\protocol4z.h" />
-    <ClInclude Include="..\..\..\tools\thread4z\thread.h" />
+    <ClInclude Include="..\..\..\depends\log4z\log4z.h" />
+    <ClInclude Include="..\..\..\depends\protocol4z\protocol4z.h" />
+    <ClInclude Include="..\..\..\depends\thread4z\thread.h" />
     <ClInclude Include="..\..\..\utility\utility.h" />
     <ClInclude Include="..\Client.h" />
     <ClInclude Include="..\header.h" />
@@ -38,8 +38,8 @@
     <ClCompile Include="..\..\..\network\iocp\public.cpp" />
     <ClCompile Include="..\..\..\network\iocp\tcpaccept.cpp" />
     <ClCompile Include="..\..\..\network\iocp\tcpsocket.cpp" />
-    <ClCompile Include="..\..\..\tools\log4z\log4z.cpp" />
-    <ClCompile Include="..\..\..\tools\thread4z\thread.cpp" />
+    <ClCompile Include="..\..\..\depends\log4z\log4z.cpp" />
+    <ClCompile Include="..\..\..\depends\thread4z\thread.cpp" />
     <ClCompile Include="..\..\..\utility\utility.cpp" />
     <ClCompile Include="..\Client.cpp" />
     <ClCompile Include="..\Process.cpp" />

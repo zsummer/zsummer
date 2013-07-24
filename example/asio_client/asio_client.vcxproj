@@ -93,7 +93,7 @@
     <ClCompile Include="asio_client.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\tools\protocol4z\protocol4z.h" />
+    <ClInclude Include="..\..\depends\protocol4z\protocol4z.h" />
     <ClInclude Include="..\..\utility\utility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

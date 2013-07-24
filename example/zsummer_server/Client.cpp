@@ -36,7 +36,7 @@
 
 #include "Client.h"
 #include "Process.h"
-#include "../../tools/protocol4z/protocol4z.h"
+#include "../../depends/protocol4z/protocol4z.h"
 CClient::CClient()
 {
 	m_ios = NULL;

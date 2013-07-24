@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 2.6)
 project(zsummer_server)
 
 aux_source_directory(../../utility UT_S)
-aux_source_directory(../../tools/thread4z TH_S)
-aux_source_directory(../../tools/log4z LG_S)
+aux_source_directory(../../depends/thread4z TH_S)
+aux_source_directory(../../depends/log4z LG_S)
 aux_source_directory(../../network/epoll EP_S)
 aux_source_directory(./ LL_S)
 

@@ -46,7 +46,7 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include "../../tools/protocol4z/protocol4z.h"
+#include "../../depends/protocol4z/protocol4z.h"
 #include "../../utility/utility.h"
 using namespace std;
 using namespace boost;

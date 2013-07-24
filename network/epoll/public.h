@@ -37,8 +37,8 @@
 #define _ZSUMMER_PUBLIC_H_
 
 #include "../../utility/utility.h"
-#include "../../tools/thread4z/thread.h"
-#include "../../tools/log4z/log4z.h"
+#include "../../depends/thread4z/thread.h"
+#include "../../depends/log4z/log4z.h"
 #include "../SocketInterface.h"
 #include <unistd.h>
 #include <assert.h>
