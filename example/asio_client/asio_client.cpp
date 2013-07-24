@@ -96,6 +96,14 @@ public:
 		else
 		{
 			m_type = 2;
+			boost::asio::ip::tcp::no_delay nodelay(true);
+			boost::system::error_code ec;
+			m_socket.set_option(nodelay, ec);
+			if (ec)
+			{
+				cout << "set_option error: " << ec.message() << endl;
+			}
+			
 			m_time.expires_from_now(boost::posix_time::milliseconds(2000));
 			m_time.async_wait(boost::bind(&CClient::TimeOut, this, _1));
 			Recv();
@@ -152,7 +160,8 @@ public:
 
 				if (now >= 100)
 				{
-					cout << " recv warning: protocolID=" << protocolID << ", requestID=" << requestID << ", counter=" << counter << "used time=" << now << ", text=" << text << endl;
+					//cout << " recv warning: protocolID=" << protocolID << ", requestID=" << requestID << ", counter=" << counter << "used time=" << now << ", text=" << text << endl;
+					g_usetime2[9] ++;
 				}
 				else
 				{

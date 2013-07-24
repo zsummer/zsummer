@@ -207,11 +207,19 @@ bool CTcpAccept::OnIOCPMessage(BOOL bSuccess)
 
 	if (bSuccess)
 	{
-		if (setsockopt(m_socket,SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (char*)&m_server, sizeof(m_server)) != 0)
+
 		{
-			LCW("SO_UPDATE_ACCEPT_CONTEXT fail!  last err=" << WSAGetLastError()  << " ip=" << m_ip << ", port=" << m_port);
+			if (setsockopt(m_socket,SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (char*)&m_server, sizeof(m_server)) != 0)
+			{
+				LCW("SO_UPDATE_ACCEPT_CONTEXT fail!  last err=" << WSAGetLastError()  << " ip=" << m_ip << ", port=" << m_port);
+			}
+			BOOL bTrue = TRUE;
+			if (setsockopt(m_socket,IPPROTO_TCP, TCP_NODELAY, (char*)&bTrue, sizeof(bTrue)) != 0)
+			{
+				LCW("setsockopt TCP_NODELAY fail!  last err=" << WSAGetLastError()  << " ip=" << m_ip << ", port=" << m_port);
+			}
 		}
-		
+
 		sockaddr * paddr1 = NULL;
 		sockaddr * paddr2 = NULL;
 		int tmp1 = 0;

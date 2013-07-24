@@ -36,12 +36,6 @@
     <ClInclude Include="..\..\..\network\iocp\tcpsocket.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\tools\log4z\log4z.h">
-      <Filter>log</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\tools\thread4z\thread.h">
-      <Filter>thread</Filter>
-    </ClInclude>
     <ClInclude Include="..\Client.h">
       <Filter>main</Filter>
     </ClInclude>
@@ -54,11 +48,15 @@
     <ClInclude Include="..\..\..\utility\utility.h">
       <Filter>utility</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\tools\protocol4z\protocol4z.h">
-      <Filter>protocol</Filter>
-    </ClInclude>
     <ClInclude Include="..\Process.h">
       <Filter>main</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\depends\protocol4z\protocol4z.h" />
+    <ClInclude Include="..\..\..\depends\log4z\log4z.h">
+      <Filter>log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\depends\thread4z\thread.h">
+      <Filter>thread</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -74,12 +72,6 @@
     <ClCompile Include="..\..\..\network\iocp\tcpsocket.cpp">
       <Filter>core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\tools\log4z\log4z.cpp">
-      <Filter>log</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\tools\thread4z\thread.cpp">
-      <Filter>thread</Filter>
-    </ClCompile>
     <ClCompile Include="..\Client.cpp">
       <Filter>main</Filter>
     </ClCompile>
@@ -94,6 +86,12 @@
     </ClCompile>
     <ClCompile Include="..\Process.cpp">
       <Filter>main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\depends\log4z\log4z.cpp">
+      <Filter>log</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\depends\thread4z\thread.cpp">
+      <Filter>thread</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

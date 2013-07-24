@@ -91,6 +91,8 @@ bool CIOServer::Start(IIOServerCallback *cb)
 		}
 		SetNonBlock(m_sockpair[0]);
 		SetNonBlock(m_sockpair[1]);
+		SetNoDelay(m_sockpair[1]);
+		SetNoDelay(m_sockpair[1]);
 		m_recv._ptr = this;
 		m_recv._type = tagRegister::REG_THREAD;
 		m_recv._socket = m_sockpair[1];

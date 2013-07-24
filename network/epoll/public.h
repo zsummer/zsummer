@@ -48,6 +48,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <sys/epoll.h>
 
@@ -95,6 +96,11 @@ namespace zsummer
 	inline bool SetNonBlock(int fd) 
 	{
 		return fcntl((fd), F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK) == 0;
+	}
+	inline bool SetNoDelay(int fd)
+	{
+		int bTrue = true?1:0;
+		return setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char*)&bTrue, sizeof(bTrue)) == 0;
 	}
 }
 

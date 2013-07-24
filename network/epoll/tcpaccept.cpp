@@ -167,6 +167,7 @@ bool CTcpAccept::OnEPOLLMessage(bool bSuccess)
 		}
 
 		SetNonBlock(s);
+		SetNoDelay(s);
 	
 		CTcpSocket * ps = (CTcpSocket *)CreateTcpSocket();
 		ps->m_handle._socket = s;
