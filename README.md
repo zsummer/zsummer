@@ -56,8 +56,7 @@ cd test/asio_client
 use vs2010 open asio_client.sln  
 It need the boost asio support   
 
-# auther: 张亚伟 YaweiZhang
-QQ Group: 19811947  
+# auther: 张亚伟 YaweiZhang   
 Web Site: www.zsummer.net  
 mail: yawei_zhang@foxmail.com  
 github: https://github.com/zsummer  
