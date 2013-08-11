@@ -61,18 +61,13 @@ CTcpSocket::CTcpSocket()
 	m_recvHandle._type = tagReqHandle::HANDLE_RECV;
 	m_recvWSABuf.buf = NULL;
 	m_recvWSABuf.len = 0;
-	m_recvUserBuf = NULL;
-	m_recvOffset = 0;
-	m_recvTotal = 0;
+
 
 	//send
 	memset(&m_sendHandle, 0, sizeof(m_sendHandle));
 	m_sendHandle._type = tagReqHandle::HANDLE_SEND;
 	m_sendWsaBuf.buf = NULL;
 	m_sendWsaBuf.len = 0;
-	m_sendUserBuf = NULL;
-	m_sendOffset = 0;
-	m_sendTotal = 0;
 
 	//connect
 
@@ -97,9 +92,10 @@ CTcpSocket::~CTcpSocket()
 	}
 }
 
-bool CTcpSocket::BindIOServer(IIOServer * ios)
+bool CTcpSocket::Initialize(IIOServer * ios, ITcpSocketCallback * cb)
 {
 	m_ios = ios;
+	m_cb = cb;
 	if (m_socket == INVALID_SOCKET)
 	{
 		m_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
@@ -129,11 +125,7 @@ bool CTcpSocket::BindIOServer(IIOServer * ios)
 }
 
 
-bool CTcpSocket::SetCallback(ITcpSocketCallback * cb)
-{
-	m_cb = cb;
-	return true;
-}
+
 
 
 typedef  BOOL (PASCAL  *ConnectEx)(  SOCKET s,  const struct sockaddr* name,  int namelen,
@@ -228,11 +220,8 @@ bool CTcpSocket::DoSend(char * buf, unsigned int len)
 		return false;
 	}
 
-	m_sendUserBuf = buf;
-	m_sendTotal = len;
-	m_sendOffset = 0;
-	m_sendWsaBuf.buf = m_sendUserBuf;
-	m_sendWsaBuf.len = m_sendTotal;
+	m_sendWsaBuf.buf = buf;
+	m_sendWsaBuf.len = len;
 
 	DWORD dwTemp1=0;
 	if (WSASend(m_socket, &m_sendWsaBuf, 1, &dwTemp1, 0, &m_sendHandle._overlapped, NULL) != 0)
@@ -276,11 +265,9 @@ bool CTcpSocket::DoRecv(char * buf, unsigned int len)
 		return false;
 	}
 
-	m_recvUserBuf = buf;
-	m_recvTotal = len;
-	m_recvOffset = 0;
-	m_recvWSABuf.buf = m_recvUserBuf;
-	m_recvWSABuf.len = m_recvTotal;
+
+	m_recvWSABuf.buf = buf;
+	m_recvWSABuf.len = len;
 
 	DWORD dwRecv = 0;
 	DWORD dwFlag = 0;
@@ -319,76 +306,30 @@ bool CTcpSocket::OnIOCPMessage(BOOL bSuccess, DWORD dwTranceCount, unsigned char
 	if (cType == tagReqHandle::HANDLE_RECV)
 	{
 		//server side active close.
+		m_isRecving = false;
 		if (!bSuccess)
 		{
-			m_isRecving = false;
 			CloseImlp();
 			return true;
 		}
 		// client side active closed
 		if (dwTranceCount == 0)
 		{
-			m_isRecving = false;
 			CloseImlp();
 			return true;
 		}
-
-		if (dwTranceCount == m_recvTotal - m_recvOffset)
-		{
-			m_isRecving = false;
-			m_cb->OnRecv();
-		}
-		else
-		{
-			m_recvOffset += dwTranceCount;
-			m_recvWSABuf.buf = m_recvUserBuf+m_recvOffset;
-			m_recvWSABuf.len = m_recvTotal - m_recvOffset;
-
-			DWORD dwRecv = 0;
-			DWORD dwFlag = 0;
-			if (WSARecv(m_socket, &m_recvWSABuf, 1, &dwRecv, &dwFlag, &m_recvHandle._overlapped, NULL) != 0)
-			{
-				if (WSAGetLastError() != WSA_IO_PENDING)
-				{
-					LCE("CTcpSocket::OnIOCPMessage DoRecv failed and ERRCODE!=ERROR_IO_PENDING, socket="<< (unsigned int) m_socket << ", ERRCODE=" << WSAGetLastError());
-					m_isRecving = false;
-					Close();
-				}
-			}
-		}
+		m_cb->OnRecv((unsigned int)dwTranceCount);
 	}
 	else if (cType == tagReqHandle::HANDLE_SEND)
 	{
 		//server side active close.
+		m_isSending = false;
 		if (!bSuccess)
 		{
-			m_isRecving = false;
 			CloseImlp();
 			return true;
 		}
-
-		if (dwTranceCount == m_sendTotal - m_sendOffset)
-		{
-			m_isSending = false;
-			m_cb->OnSend();
-		}
-		else
-		{
-			m_sendOffset += dwTranceCount;
-			m_sendWsaBuf.buf = m_sendUserBuf + m_sendOffset;
-			m_sendWsaBuf.len = m_sendTotal - m_sendOffset;
-
-			DWORD dwTemp1=0;
-			if (WSASend(m_socket, &m_sendWsaBuf, 1, &dwTemp1, 0, &m_sendHandle._overlapped, NULL) != 0)
-			{
-				if (WSAGetLastError() != WSA_IO_PENDING)
-				{
-					LCE("CTcpSocket::OnIOCPMessage DoSend failed and ERRCODE!=ERROR_IO_PENDING, socket="<< (unsigned int) m_socket << ", ERRCODE=" << WSAGetLastError());
-					m_isSending = false;
-					Close();
-				}
-			}
-		}
+		m_cb->OnSend((unsigned int)dwTranceCount);
 	}
 	return true;
 }

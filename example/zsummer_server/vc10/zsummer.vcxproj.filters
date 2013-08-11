@@ -51,12 +51,14 @@
     <ClInclude Include="..\Process.h">
       <Filter>main</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\depends\protocol4z\protocol4z.h" />
     <ClInclude Include="..\..\..\depends\log4z\log4z.h">
       <Filter>log</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\depends\thread4z\thread.h">
       <Filter>thread</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\depends\protocol4z\protocol4z.h">
+      <Filter>protocol</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

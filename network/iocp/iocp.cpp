@@ -55,6 +55,7 @@ CIOServer::CIOServer()
 {
 	m_io = NULL;
 	m_cb = NULL;
+	m_lasttime = 0;
 }
 CIOServer::~CIOServer()
 {
@@ -62,7 +63,7 @@ CIOServer::~CIOServer()
 }
 
 
-bool CIOServer::Start(IIOServerCallback * cb)
+bool CIOServer::Initialize(IIOServerCallback * cb)
 {
 	if (g_coreID <0)
 	{
@@ -83,15 +84,11 @@ bool CIOServer::Start(IIOServerCallback * cb)
 		LCF("CreateIoCompletionPort False!");
 		return false;
 	}
-
+	m_lasttime = GetTimeMillisecond();
 	return true;
 }
 
-bool CIOServer::Stop()
-{
-	PostMsg(PCK_IOCP_EXIT, NULL);
-	return true;
-}
+
 void CIOServer::Post(void *pUser)
 {
 	PostMsg(PCK_USER_DATA, (ULONG_PTR)pUser);
@@ -103,81 +100,76 @@ void CIOServer::PostMsg(POST_COM_KEY pck, ULONG_PTR ptr)
 }
 
 
-void CIOServer::Run()
+void CIOServer::RunOnce()
 {
+	if (m_io == NULL || m_cb == NULL)
+	{
+		LCF("Can't Run Once. server not initialize or initialize false.");
+		return;
+	}
+
 	DWORD dwTranceCount = 0;
 	ULONG_PTR uComKey = NULL;
 	LPOVERLAPPED pOverlapped = NULL;
-	unsigned int timerTime = GetTimeMillisecond();
-	while (1)
+
+	BOOL bRet = GetQueuedCompletionStatus(m_io, &dwTranceCount, &uComKey, &pOverlapped, 1000/*INFINITE*/);
+
+	//检查定时器超时状态
 	{
-		dwTranceCount = 0;
-		uComKey = 0;
-		pOverlapped = NULL;
-
-		BOOL bRet = GetQueuedCompletionStatus(m_io, &dwTranceCount, &uComKey, &pOverlapped, 1000/*INFINITE*/);
-
-		//check timer
+		unsigned int curTime = GetTimeMillisecond();
+		if (curTime - m_lasttime > 1000)
 		{
-			unsigned int curTime = GetTimeMillisecond();
-			if (curTime - timerTime > 1000)
-			{
-				timerTime = curTime;
-				m_cb->OnTimer();
-			}
-			if (!bRet && !pOverlapped)
-			{
-				//TIMEOUT
-				continue;
-			}
+			m_lasttime = curTime;
+			m_cb->OnTimer();
 		}
-
-		if (uComKey == PCK_IOCP_EXIT && pOverlapped == NULL)
+		if (!bRet && !pOverlapped)
 		{
-			LCI("PCK_IOCP_EXIT ...");
-			break;
-		}
-		else if (uComKey == PCK_ACCEPT_CLOSE)
-		{
-			CTcpAccept *pp = (CTcpAccept *) (ULONG_PTR)pOverlapped;
-			pp->OnClear();
-			continue;
-		}
-		else if (uComKey == PCK_SOCKET_CLOSE)
-		{
-			CTcpSocket *pp = (CTcpSocket*) (ULONG_PTR)pOverlapped;
-			pp->OnClear();
-			continue;
-		}
-		else if (uComKey == PCK_USER_DATA)
-		{
-			m_cb->OnMsg((void *)pOverlapped);
-			continue;
-		}
-		
-		unsigned char type = ((tagReqHandle*)pOverlapped)->_type;
-		switch (type)
-		{
-		case tagReqHandle::HANDLE_ACCEPT:
-			{
-				CTcpAccept *pKey = (CTcpAccept *) uComKey;
-				pKey->OnIOCPMessage(bRet);
-			}
-			break;
-		case tagReqHandle::HANDLE_RECV:
-		case tagReqHandle::HANDLE_SEND:
-		case tagReqHandle::HANDLE_CONNECT:
-			{
-				CTcpSocket *pKey = (CTcpSocket *) uComKey;
-				pKey->OnIOCPMessage(bRet, dwTranceCount, type);
-			}
-			break;
-		default:
-			LCE("GetQueuedCompletionStatus undefined type=" << type);
+			//TIMEOUT
+			return;
 		}
 	}
 
+	//! 检查自定义通知
+	if (uComKey == PCK_ACCEPT_CLOSE)
+	{
+		CTcpAccept *pp = (CTcpAccept *) (ULONG_PTR)pOverlapped;
+		pp->OnClear();
+		return;
+	}
+	else if (uComKey == PCK_SOCKET_CLOSE)
+	{
+		CTcpSocket *pp = (CTcpSocket*) (ULONG_PTR)pOverlapped;
+		pp->OnClear();
+		return;
+	}
+	else if (uComKey == PCK_USER_DATA)
+	{
+		m_cb->OnPost((void *)pOverlapped);
+		return;
+	}
 	
+	//! 处理来自网络的通知
+	unsigned char type = ((tagReqHandle*)pOverlapped)->_type;
+	switch (type)
+	{
+	case tagReqHandle::HANDLE_ACCEPT:
+		{
+			CTcpAccept *pKey = (CTcpAccept *) uComKey;
+			pKey->OnIOCPMessage(bRet);
+		}
+		break;
+	case tagReqHandle::HANDLE_RECV:
+	case tagReqHandle::HANDLE_SEND:
+	case tagReqHandle::HANDLE_CONNECT:
+		{
+			CTcpSocket *pKey = (CTcpSocket *) uComKey;
+			pKey->OnIOCPMessage(bRet, dwTranceCount, type);
+		}
+		break;
+	default:
+		LCE("GetQueuedCompletionStatus undefined type=" << type);
+	}
+
 }
 
 

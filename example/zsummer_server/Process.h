@@ -57,7 +57,7 @@ public:
 	//!IOServer被安全停止
 	virtual bool OnStop();
 	//！收到线程消息 
-	virtual bool OnMsg(void *pUser);
+	virtual bool OnPost(void *pUser);
 	virtual bool OnTimer();
 
 	//! 一些状态统计用接口
@@ -75,6 +75,7 @@ public:
 	
 private:
 	IIOServer * m_ios;
+	bool	m_bRunning;
 	unsigned long long  m_nTotalRecvLen;
 	unsigned long long  m_nTotalSendLen;
 	unsigned long long  m_nTotalRecvCount;

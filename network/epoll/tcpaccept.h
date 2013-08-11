@@ -52,8 +52,7 @@ namespace zsummer
 	public:
 		CTcpAccept();
 		virtual ~CTcpAccept();
-		virtual bool BindIOServer(IIOServer * ios);
-		virtual bool SetCallbck(ITcpAcceptCallback * cb);
+		virtual bool Initialize(IIOServer * ios, ITcpAcceptCallback * cb);
 		virtual bool OpenAccept(const char * ip, unsigned short port);
 		virtual bool OnEPOLLMessage(bool bSuccess);
 		virtual bool Close();

@@ -52,7 +52,7 @@ public:
 	//! Ïß³Ì
 	void Run();
 	virtual bool OnStop();
-	virtual bool OnMsg(void *pUser);
+	virtual bool OnPost(void *pUser);
 	virtual bool OnTimer();
 	//! acceptµ½client
 	virtual bool OnAccept(ITcpSocket * s);
@@ -64,6 +64,9 @@ public:
 	//! IOServer³Ø
 	std::vector<CProcess *> m_process;
 	int						m_iCurProcess;
+
+	//! 
+	bool m_bRunning;
 };
 
 

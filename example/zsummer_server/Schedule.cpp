@@ -42,6 +42,7 @@
 CSchedule::CSchedule()
 {
 	m_iCurProcess = 0;
+	m_bRunning = false;
 }
 
 void CSchedule::Start()
@@ -55,15 +56,14 @@ void CSchedule::Start()
 		}
 	}
 	m_ios = CreateIOServer();
-	if (!m_ios->Start(this))
+	if (!m_ios->Initialize(this))
 	{
 		LOGE("manager start fail!");
 		return;
 	}
 
 	m_accept = CreateTcpAccept();
-	m_accept->SetCallbck(this);
-	m_accept->BindIOServer(m_ios);
+	m_accept->Initialize(m_ios, this);
 	if (m_accept->OpenAccept("0.0.0.0", 81))
 	{
 		LOGI("OpenAccept 81 success");
@@ -73,22 +73,26 @@ void CSchedule::Start()
 		LOGF("OpenAccept 81 failed");
 		return;
 	}
+	m_bRunning = true;
 	CThread::Start();
 }
 void CSchedule::Stop()
 {
-	m_ios->Stop();
+	m_bRunning = false;
 }
 void CSchedule::Run()
 {
-	m_ios->Run();
+	while (m_bRunning)
+	{
+		m_ios->RunOnce();
+	}
 }
 bool CSchedule::OnStop()
 {
 	return true;
 }
 
-bool CSchedule::OnMsg(void *pUser)
+bool CSchedule::OnPost(void *pUser)
 {
 	return true;
 }

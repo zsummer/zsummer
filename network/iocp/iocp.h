@@ -48,21 +48,25 @@ using namespace zsummer::network;
 
 namespace zsummer
 {
+	//! 消息泵, message loop.
 	class CIOServer: public IIOServer
 	{
 	public:
 		CIOServer();
 		virtual ~CIOServer();
-
-		virtual bool Start(IIOServerCallback *cb);
-		virtual bool Stop();
-		virtual void Run();
+		virtual bool Initialize(IIOServerCallback *cb);
+		virtual void RunOnce();
 		virtual void Post(void *pUser);
-
+	public:
 		void PostMsg(POST_COM_KEY pck, ULONG_PTR ptr); 
 	public:
+		//! IOCP句柄
 		HANDLE m_io;
+		//! IO处理器回调指针
 		IIOServerCallback * m_cb;
+		//! 最后一次定时器触发时间
+		unsigned int	m_lasttime;
+		
 	};
 
 }

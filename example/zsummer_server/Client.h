@@ -51,23 +51,26 @@ class CClient :public ITcpSocketCallback
 public:
 	CClient();
 	~CClient();
-	void InitSocket(CProcess *ios, ITcpSocket *s);
-	virtual bool OnRecv();
+	void InitSocket(CProcess *proc, ITcpSocket *s);
+	virtual bool OnRecv(unsigned int n);
 	virtual bool OnConnect(bool bConnected);
-	virtual bool OnSend();
+	virtual bool OnSend(unsigned int nSentLen);
 	virtual bool OnClose();
 
-	CProcess  * m_ios;
+	CProcess  * m_process;
 	ITcpSocket * m_socket;
 	
 	//! 每个消息包分两次分别读取头部和包体
 	unsigned char m_type;
 	//! 读包
 	Packet m_recving;
+	unsigned short m_curRecvLen;
 	//! 写包队列
 	std::queue<Packet *> m_sendque;
+
 	//! 当前写包
 	Packet m_sending;
+	unsigned short m_curSendLen;
 };
 
 #endif

@@ -52,6 +52,7 @@ CIOServer::CIOServer()
 {
 	m_cb = NULL;
 	m_epoll = 0;
+	m_lasttime = 0;
 	m_sockpair[0] = 0;
 	m_sockpair[1] = 0;
 }
@@ -63,7 +64,7 @@ CIOServer::~CIOServer()
 
 
 
-bool CIOServer::Start(IIOServerCallback *cb)
+bool CIOServer::Initialize(IIOServerCallback *cb)
 {
 	if (g_coreID <0)
 	{
@@ -108,11 +109,7 @@ bool CIOServer::Start(IIOServerCallback *cb)
 	return true;
 }
 
-bool CIOServer::Stop()
-{
-	PostMsg(PCK_EPOLL_EXIT, NULL);
-	return true;
-}
+
 
 
 void CIOServer::PostMsg(POST_COM_KEY pck, void * ptr)
@@ -129,110 +126,90 @@ void CIOServer::Post(void *pUser)
 	PostMsg(PCK_USER_DATA, pUser);
 }
 
-void CIOServer::Run()
+void CIOServer::RunOnce()
 {
-	epoll_event events[10000];
-	int retCount = 0;
-	bool bRuning = true;
-	unsigned int timerTime = GetTimeMillisecond();
-	while (true)
+	int retCount = epoll_wait(m_epoll, m_events, 5000,  1000);
+	if (retCount == -1)
 	{
-		retCount = epoll_wait(m_epoll, events, 10000,  1000);
-		if (retCount == -1)
+		if (errno != EINTR)
 		{
-			if (errno != EINTR)
-			{
-				LCD("ERR: epoll_wait err!  errno=" <<strerror(errno));
-				break;
-			}
-			continue;
+			LCD("ERR: epoll_wait err!  errno=" <<strerror(errno));
+			return; //! error
 		}
-		//check timer
+		return;
+	}
+	//check timer
+	{
+		unsigned int curTime = GetTimeMillisecond();
+		if (curTime - m_lasttime > 1000)
 		{
-			unsigned int curTime = GetTimeMillisecond();
-			if (curTime - timerTime > 1000)
-			{
-				timerTime = curTime;
-				m_cb->OnTimer();
-			}
-			if (retCount == 0) continue;//timeout
+			m_lasttime = curTime;
+			m_cb->OnTimer();
 		}
-
-		
-		for (int i=0; i<retCount; i++)
-		{
-			int eventflag = events[i].events;
-			tagRegister * pReg = (tagRegister *)events[i].data.ptr;
-			//tagHandle  type
-			if (pReg->_type == tagRegister::REG_THREAD)
-			{
-				char buf[1000];
-				while (recv(pReg->_socket, buf, 1000, 0) > 0){}
-
-				MsgVct msgs;
-				m_msglock.Lock();
-				msgs = m_msgs;
-				m_msgs.clear();
-				m_msglock.UnLock();
-
-				for (MsgVct::iterator iter = msgs.begin(); iter != msgs.end(); ++iter)
-				{
-					if (iter->first == PCK_EPOLL_EXIT)
-					{
-						LCD("INFO: epoll recv exit event");
-						bRuning = false;
-						continue;
-					}
-					else if (iter->first == PCK_ACCEPT_CLOSE)
-					{
-						CTcpAccept * p = (CTcpAccept *) iter->second;
-						p->OnPostClose();
-					}
-					else if (iter->first == PCK_SOCKET_CLOSE)
-					{
-						CTcpSocket *p = (CTcpSocket*)iter->second;
-						p->OnPostClose();
-					}
-					else if (iter->first == PCK_USER_DATA)
-					{
-						m_cb->OnMsg(iter->second);
-					}
-				}
-			}
-			else if (pReg->_type == tagRegister::REG_ACCEPT)
-			{
-				CTcpAccept *pKey = (CTcpAccept *) pReg->_ptr;
-				if (eventflag & EPOLLIN)
-				{
-					pKey->OnEPOLLMessage(true);
-				}
-				if (eventflag & EPOLLERR || eventflag & EPOLLHUP)
-				{
-					pKey->OnEPOLLMessage(false);
-				}
-			}
-			else
-			{
-				if    (pReg->_type != tagRegister::REG_RECV 
-					&& pReg->_type != tagRegister::REG_SEND
-					&& pReg->_type != tagRegister::REG_CONNECT)
-				{
-					LCE("check register event type failed !!  type=" << pReg->_type);
-					continue;
-				}
-
-				CTcpSocket *pKey = (CTcpSocket *) pReg->_ptr;
-				pKey->OnEPOLLMessage(pReg->_type, eventflag);
-			}
-		}
-
-		if (!bRuning)
-		{
-			break;
-		}
+		if (retCount == 0) return;//timeout
 	}
 
-	LCD("INFO: epoll loop exit");
+		
+	for (int i=0; i<retCount; i++)
+	{
+		int eventflag = m_events[i].events;
+		tagRegister * pReg = (tagRegister *)m_events[i].data.ptr;
+		//tagHandle  type
+		if (pReg->_type == tagRegister::REG_THREAD)
+		{
+			char buf[1000];
+			while (recv(pReg->_socket, buf, 1000, 0) > 0){}
+
+			MsgVct msgs;
+			m_msglock.Lock();
+			msgs = m_msgs;
+			m_msgs.clear();
+			m_msglock.UnLock();
+
+			for (MsgVct::iterator iter = msgs.begin(); iter != msgs.end(); ++iter)
+			{
+				if (iter->first == PCK_ACCEPT_CLOSE)
+				{
+					CTcpAccept * p = (CTcpAccept *) iter->second;
+					p->OnPostClose();
+				}
+				else if (iter->first == PCK_SOCKET_CLOSE)
+				{
+					CTcpSocket *p = (CTcpSocket*)iter->second;
+					p->OnPostClose();
+				}
+				else if (iter->first == PCK_USER_DATA)
+				{
+					m_cb->OnPost(iter->second);
+				}
+			}
+		}
+		else if (pReg->_type == tagRegister::REG_ACCEPT)
+		{
+			CTcpAccept *pKey = (CTcpAccept *) pReg->_ptr;
+			if (eventflag & EPOLLIN)
+			{
+				pKey->OnEPOLLMessage(true);
+			}
+			if (eventflag & EPOLLERR || eventflag & EPOLLHUP)
+			{
+				pKey->OnEPOLLMessage(false);
+			}
+		}
+		else
+		{
+			if    (pReg->_type != tagRegister::REG_RECV 
+				&& pReg->_type != tagRegister::REG_SEND
+				&& pReg->_type != tagRegister::REG_CONNECT)
+			{
+				LCE("check register event type failed !!  type=" << pReg->_type);
+				continue;
+			}
+
+			CTcpSocket *pKey = (CTcpSocket *) pReg->_ptr;
+			pKey->OnEPOLLMessage(pReg->_type, eventflag);
+		}
+	}
 }
 
 

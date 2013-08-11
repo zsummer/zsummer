@@ -59,9 +59,8 @@ namespace zsummer
 	public:
 		CIOServer();
 		virtual ~CIOServer();
-		virtual bool Start(IIOServerCallback *cb);
-		virtual void Run();
-		virtual bool Stop();
+		virtual bool Initialize(IIOServerCallback *cb);
+		virtual void RunOnce();
 
 		virtual void Post(void *pUser);
 		void PostMsg(POST_COM_KEY pck, void * ptr); 
@@ -69,6 +68,10 @@ namespace zsummer
 		int	m_epoll;
 		IIOServerCallback	* m_cb;
 
+		//! 网络消息
+		epoll_event m_events[5000];
+		//! 定时器
+		unsigned int m_lasttime;
 		//线程消息
 		int		m_sockpair[2];
 		tagRegister m_recv;

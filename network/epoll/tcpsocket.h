@@ -51,8 +51,7 @@ namespace zsummer
 	public:
 		CTcpSocket();
 		virtual ~CTcpSocket();
-		virtual bool BindIOServer(IIOServer * ios);
-		virtual bool SetCallback(ITcpSocketCallback * cb);
+		virtual bool Initialize(IIOServer * ios, ITcpSocketCallback * cb);
 		virtual bool GetPeerInfo(unsigned int * addr, unsigned short *port);
 
 
@@ -75,11 +74,9 @@ namespace zsummer
 		bool		m_bNeedDestroy;
 
 		unsigned int m_iRecvNeedLen;
-		unsigned int m_iRecvCurLen;
 		char	*	 m_pRecvBuf;
 
 		unsigned int m_iSendNeedLen;
-		unsigned int m_iSendCurLen;
 		char *		 m_pSendBuf;
 	};
 

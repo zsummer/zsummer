@@ -39,6 +39,7 @@
 
 CProcess::CProcess()
 {
+	m_bRunning = false;
 	m_ios = NULL;
 	m_nTotalRecvLen = 0;
 	m_nTotalSendLen = 0;
@@ -49,22 +50,26 @@ CProcess::CProcess()
 bool CProcess::Start()
 {
 	m_ios = CreateIOServer();
-	if (!m_ios->Start(this))
+	if (!m_ios->Initialize(this))
 	{
 		LOGE("process start fail!");
 		return false;
 	}
+	m_bRunning = true;
 	return CThread::Start();
 }
 
 void CProcess::Stop()
 {
-	m_ios->Stop();
+	m_bRunning = false;
 }
 
 void CProcess::Run()
 {
-	m_ios->Run();
+	while (m_bRunning)
+	{
+		m_ios->RunOnce();
+	}
 }
 
 void CProcess::Post(void * pUser)
@@ -77,11 +82,11 @@ bool CProcess::OnStop()
 	return true;
 }
 //来自Schedule的消息
-bool CProcess::OnMsg(void *pUser)
+bool CProcess::OnPost(void *pUser)
 {
 	ITcpSocket * s = (ITcpSocket *) pUser;
 	CClient * p = new CClient;
-	s->BindIOServer(m_ios);
+	s->Initialize(m_ios, p);
 	p->InitSocket(this, s);
 
 	return true;

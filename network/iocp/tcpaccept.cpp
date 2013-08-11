@@ -85,16 +85,13 @@ CTcpAccept::~CTcpAccept()
 	}
 }
 
-bool CTcpAccept::BindIOServer(IIOServer * ios)
+bool CTcpAccept::Initialize(IIOServer * ios, ITcpAcceptCallback * cb)
 {
 	m_ios =ios;
-	return true;
-}
-bool CTcpAccept::SetCallbck(ITcpAcceptCallback * cb)
-{
 	m_cb = cb;
 	return true;
 }
+
 bool CTcpAccept::OpenAccept(const char * ip, unsigned short port)
 {
 	if (m_ios == NULL)
@@ -184,8 +181,6 @@ bool CTcpAccept::OpenAccept(const char * ip, unsigned short port)
 	}
 	m_nAcceptCount++;
 	return true;
-
-
 }
 
 

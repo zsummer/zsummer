@@ -78,8 +78,7 @@ namespace zsummer
 
 	enum POST_COM_KEY
 	{
-		PCK_IOCP_EXIT = 1,
-		PCK_ACCEPT_CLOSE,
+		PCK_ACCEPT_CLOSE = 1,
 		PCK_SOCKET_CLOSE,
 		PCK_USER_DATA,
 	};

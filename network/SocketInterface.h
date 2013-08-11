@@ -46,8 +46,6 @@
 
 
 /*
- *
- * QQ Group: 19811947
  * Web Site: www.zsummer.net
  * mail: yawei_zhang@foxmail.com
  */
@@ -69,28 +67,25 @@ namespace zsummer
 	{
 		class ITcpAccept;
 		class ITcpSocket;
-
+		//! IO处理器回调
 		class IIOServerCallback
 		{
 		public:
-			//! IIOServer.Stop callback.
-			virtual bool OnStop() = 0;
 			//! IIOServer.post(pUser) callback.
-			virtual bool OnMsg(void *pUser) = 0;
+			virtual bool OnPost(void *pUser) = 0;
 			//! IIOServer's Timerr. per 1 seconds trigger. Don't spend too much time in here.
 			virtual bool OnTimer() = 0;
 		};
+		//! IO处理器
 		class IIOServer
 		{
 		public:
 			IIOServer(){}
 			virtual ~IIOServer() {}
 			//! some initialization for runing.
-			virtual bool Start(IIOServerCallback *cb) = 0;
+			virtual bool Initialize(IIOServerCallback *cb) = 0;
 			//! user block call.
-			virtual void Run() = 0;
-			//! stop IIOServer. It's asynchronous call and thread safe. if finish IIOServer will call IIOServerCallback.OnStop.	
-			virtual bool Stop() = 0;
+			virtual void RunOnce() = 0;
 			//! provide Thread's message queue.
 			virtual void Post(void *pUser) = 0;
 		};
@@ -100,8 +95,8 @@ namespace zsummer
 		{
 		public:
 			virtual bool OnConnect(bool bConnected) = 0;
-			virtual bool OnRecv() = 0;
-			virtual bool OnSend() = 0;
+			virtual bool OnRecv(unsigned int nRecvedLen) = 0;
+			virtual bool OnSend(unsigned int nSentLen) = 0;
 			virtual bool OnClose() = 0;
 		};
 
@@ -110,8 +105,7 @@ namespace zsummer
 		public:
 			ITcpSocket(){}
 			virtual ~ITcpSocket(){}
-			virtual bool BindIOServer(IIOServer * ios) = 0;
-			virtual bool SetCallback(ITcpSocketCallback * cb) = 0;
+			virtual bool Initialize(IIOServer * ios, ITcpSocketCallback * cb) = 0;
 			virtual bool DoConnect(const char *ip, unsigned short port) = 0;
 			virtual bool DoSend(char * buf, unsigned int len) = 0;
 			virtual bool DoRecv(char * buf, unsigned int len) =0;
@@ -131,8 +125,7 @@ namespace zsummer
 		public:
 			ITcpAccept(){}
 			virtual ~ITcpAccept(){}
-			virtual bool BindIOServer(IIOServer * ios) = 0;
-			virtual bool SetCallbck(ITcpAcceptCallback * cb) = 0;
+			virtual bool Initialize(IIOServer * ios, ITcpAcceptCallback * cb) = 0;
 			virtual bool OpenAccept(const char * ip, unsigned short port) = 0;
 		};
 

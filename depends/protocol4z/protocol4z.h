@@ -37,21 +37,17 @@
 
 /*
  * AUTHORS:  YaweiZhang <yawei_zhang@foxmail.com>
- * VERSION:  2.1
- * PURPOSE:  A lightweight library for error reporting and logging to file and screen .
+ * VERSION:  0.1
+ * PURPOSE:  A lightweight library for process protocol .
  * CREATION: 2013.07.04
  * LCHANGE:  2013.07.04
  * LICENSE:  Expat/MIT License, See Copyright Notice at the begin of this file.
  */
 
-
 /*
- *
- * QQ Group: 19811947
  * Web Site: www.zsummer.net
  * mail: yawei_zhang@foxmail.com
  */
-
 
 /* 
  * UPDATES LOG
@@ -84,10 +80,9 @@ _ZSUMMER_PROTOCOL4Z_BEGIN
 
 //! Write Stream class
 //! 
-//! header section   : body section 
+//! 包头:包体
+//! 包头用双字存储, 内容为整个包的长度(包括包头).
 //! [unsigned short] : [variable content]
-//!
-//! header = length(header section)+ length(body section); 
 //! 
 class WriteStream
 {
@@ -236,9 +231,72 @@ private:
 	bool m_reversalEndianType;
 };
 
+//! return: -1:error,  0:ready, >0: need buff length to recv.
+inline int CheckBuffIntegrity(const char * buff, unsigned short curBuffLen, unsigned short maxBuffLen, bool bigEndType = false)
+{
+	//! 检查包头是否完整
+	if (curBuffLen == 0)
+	{
+		return 2;
+	}
+	else if (curBuffLen == 1)
+	{
+		return 1;
+	}
+	//! 检查大小端字节序
+	bool reversalEndianType = false;
+	{
+		short t = 1;
+		const char *p = (const char *)&t;
+		if (*p == 1)
+		{
+			if (bigEndType)
+			{
+				reversalEndianType = true;
+			}
+		}
+		else
+		{
+			if (!bigEndType)
+			{
+				reversalEndianType = true;
+			}
+		}
+	}
+
+
+	//! 获取包长度
+	unsigned short packLen = 0;
+	if (!reversalEndianType)
+	{
+		packLen = (unsigned short)*buff;
+	}
+	else
+	{
+		char * p = (char *)&packLen;
+		*p++ = buff[1];
+		*p = buff[0];
+	}
+
+	//! check
+	if (packLen > maxBuffLen)
+	{
+		return -1;
+	}
+	if (packLen == curBuffLen)
+	{
+		return 0;
+	}
+	if (packLen < curBuffLen)
+	{
+		return -1;
+	}
+	return packLen - curBuffLen;
+}
+
 //! Read Stream class
 //! 
-//! header section   : body section 
+//! 包头   : 包体 
 //! [unsigned short] : [variable content]
 //!
 //! header = length(header section)+ length(body section); 

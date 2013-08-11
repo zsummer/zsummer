@@ -39,105 +39,107 @@
 #include "../../depends/protocol4z/protocol4z.h"
 CClient::CClient()
 {
-	m_ios = NULL;
+	m_process = NULL;
 	m_socket = NULL;
 
 	m_type = 1;
 	memset(&m_recving, 0, sizeof(m_recving));
+	m_curRecvLen = 0;
 	memset(&m_sending, 0, sizeof(m_sending));
+	m_curSendLen = 0;
 }
 
 CClient::~CClient()
 {
 }
 
-void CClient::InitSocket(CProcess *ios, ITcpSocket *s)
+void CClient::InitSocket(CProcess *proc, ITcpSocket *s)
 {
-	m_ios = ios;
+	m_process = proc;
 	m_socket = s;
-	m_socket->SetCallback(this);
-
 	m_socket->DoRecv(m_recving._body, 2);
 }
 
-bool CClient::OnRecv()
+bool CClient::OnRecv(unsigned int nRecvedLen)
 {
-	//! 先收包头
-	m_ios->AddTotalRecvCount(1);
-	if (m_type == 1)
+	m_curRecvLen += nRecvedLen;
+	m_process->AddTotalRecvCount(1);
+	int needRecv = zsummer::protocol4z::CheckBuffIntegrity(m_recving._body, m_curRecvLen, _MSG_BUF_LEN);
+	if ( needRecv == -1)
 	{
-		m_type = 2;
-		if (m_recving._head > _MSG_BUF_LEN || m_recving._head <= 2)
-		{
-			LOGE("killed socket: recved error header len:" << m_recving._head);
-			m_socket->Close();
-			return false;
-		}
-		m_socket->DoRecv(m_recving._body+2, m_recving._head-2);
+		LOGE("killed socket: CheckBuffIntegrity error ");
+		m_socket->Close();
+		return false;
 	}
-	//! 收包体
-	else if (m_type == 2)
+	if (needRecv > 0)
 	{
-		m_recving._body[m_recving._head] = '\0';
-		m_ios->AddTotalRecvLen(m_recving._head);
-		//LOGD("recv msg: " << m_recving._body+2);
-		zsummer::protocol4z::ReadStream rs(m_recving._body, m_recving._head);
-		unsigned short protocolID = 0;
-		unsigned short requestID = 0;
-		unsigned long long counter = 0;
-		unsigned int sendtime = 0;
-		std::string text;
+		m_socket->DoRecv(m_recving._body+m_curRecvLen, needRecv);
+		return true;
+	}
+
+
+
+	//! 解包
+	unsigned short protocolID = 0;
+	unsigned short requestID = 0;
+	unsigned long long counter = 0;
+	unsigned int sendtime = 0;
+	std::string text;
+	zsummer::protocol4z::ReadStream rs(m_recving._body, m_curRecvLen);
+	try
+	{
+		rs >> protocolID >> requestID >>counter >> sendtime >> text;
+	}
+	catch (std::runtime_error e)
+	{
+		LOGE("recv msg catch one exception: "<< e.what() );
+		m_socket->Close();
+		return false;
+	}
+	//begin logic
+	counter++;
+	//end logic
+
+	if (m_sending._head != 0)
+	{
+		Packet *p = new Packet;
+		zsummer::protocol4z::WriteStream ws(p->_body, _MSG_BUF_LEN);
 		try
 		{
-			rs >> protocolID >> requestID >>counter >> sendtime >> text;
+			ws << protocolID << requestID << counter << sendtime << text;
+			m_sendque.push(p);
 		}
 		catch (std::runtime_error e)
 		{
-			LOGE("recv msg catch one exception: "<< e.what() );
+			delete p;
+			LOGE("send msg catch one exception: "<< e.what() );
 			m_socket->Close();
 			return false;
 		}
-		//begin logic
-		counter++;
-		//end logic
 
-		if (m_sending._head != 0)
-		{
-			Packet *p = new Packet;
-			zsummer::protocol4z::WriteStream ws(p->_body, _MSG_BUF_LEN);
-			try
-			{
-				ws << protocolID << requestID << counter << sendtime << text;
-				m_sendque.push(p);
-			}
-			catch (std::runtime_error e)
-			{
-				delete p;
-				LOGE("send msg catch one exception: "<< e.what() );
-				m_socket->Close();
-				return false;
-			}
-
-		}
-		else
-		{
-			zsummer::protocol4z::WriteStream ws(m_sending._body, _MSG_BUF_LEN);
-			try
-			{
-				ws << protocolID << requestID << counter << sendtime << text;
-
-			}
-			catch (std::runtime_error e)
-			{
-				LOGE("send msg catch one exception: "<< e.what() );
-				m_socket->Close();
-				return false;
-			}
-			m_socket->DoSend(m_sending._body, m_sending._head);
-		}
-		m_type = 1;
-		m_socket->DoRecv(m_recving._body, 2);
 	}
+	else
+	{
+		zsummer::protocol4z::WriteStream ws(m_sending._body, _MSG_BUF_LEN);
+		try
+		{
+			ws << protocolID << requestID << counter << sendtime << text;
+
+		}
+		catch (std::runtime_error e)
+		{
+			LOGE("send msg catch one exception: "<< e.what() );
+			m_socket->Close();
+			return false;
+		}
+		m_socket->DoSend(m_sending._body, m_sending._head);
+	}
+
+	m_process->AddTotalRecvLen(m_recving._head);
+	memset(&m_recving, 0, sizeof(m_recving));
+	m_curRecvLen = 0;
+	m_socket->DoRecv(m_recving._body, 2);
+	
 	return true;
 }
 
@@ -146,21 +148,30 @@ bool CClient::OnConnect(bool bConnected)
 	return true;
 }
 
-bool CClient::OnSend()
+bool CClient::OnSend(unsigned int nSentLen)
 {
-	m_ios->AddTotalSendCount(1);
-	m_ios->AddTotalSendLen(m_sending._head);
-	if (m_sendque.empty())
+	m_process->AddTotalSendCount(1);
+	m_process->AddTotalSendLen(nSentLen);
+	m_curSendLen += nSentLen;
+	if (m_curSendLen < m_sending._head)
 	{
-		m_sending._head = 0;
+		m_socket->DoSend(&m_sending._body[m_curSendLen], m_sending._head - m_curSendLen);
 	}
-	else
+	else if (m_curSendLen == m_sending._head)
 	{
-		Packet *p = m_sendque.front();
-		m_sendque.pop();
-		memcpy((char*)&m_sending, p, sizeof(m_sending));
-		m_socket->DoSend(m_sending._body, p->_head);
-		delete p;
+		m_curSendLen = 0;
+		if (m_sendque.empty())
+		{
+			m_sending._head = 0;
+		}
+		else
+		{
+			Packet *p = m_sendque.front();
+			m_sendque.pop();
+			memcpy((char*)&m_sending, p, sizeof(m_sending));
+			m_socket->DoSend(m_sending._body, p->_head);
+			delete p;
+		}
 	}
 	return true;
 }

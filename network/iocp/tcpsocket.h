@@ -46,8 +46,7 @@ namespace zsummer
 	public:
 		CTcpSocket();
 		virtual ~CTcpSocket();
-		virtual bool BindIOServer(IIOServer * ios);
-		virtual bool SetCallback(ITcpSocketCallback * cb);
+		virtual bool Initialize(IIOServer * ios, ITcpSocketCallback * cb);
 		virtual bool GetPeerInfo(unsigned int * addr, unsigned short *port);
 
 
@@ -55,13 +54,10 @@ namespace zsummer
 		virtual bool DoSend(char * buf, unsigned int len);
 		virtual bool DoRecv(char * buf, unsigned int len);
 		virtual bool Close();
+	public:
 		bool CloseImlp();
-
 		void OnClear();
-
 		virtual bool OnIOCPMessage(BOOL bSuccess, DWORD dwTranceCount, unsigned char cType);
-
-
 	public:
 		//private
 		IIOServer * m_ios;
@@ -72,16 +68,13 @@ namespace zsummer
 		//recv
 		tagReqHandle m_recvHandle;
 		WSABUF		 m_recvWSABuf;
-		char *		 m_recvUserBuf;
-		unsigned int	m_recvOffset;
-		unsigned int	m_recvTotal;
+
+
 
 		//send
 		tagReqHandle m_sendHandle;
 		WSABUF		 m_sendWsaBuf;
-		char *		 m_sendUserBuf;
-		unsigned int	m_sendOffset;
-		unsigned int	m_sendTotal;
+
 
 		//connect
 		tagReqHandle m_connectHandle;
