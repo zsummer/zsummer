@@ -74,6 +74,7 @@ public:
 	  m_time(m_ios)
 	{
 		memset(m_recvbuf, 0 , sizeof(m_recvbuf));
+		m_curRecv = 0;
 		m_type = 0;
 		m_time.expires_from_now(boost::posix_time::milliseconds(1000+rand()%1000));
 		m_time.async_wait(boost::bind(&CClient::TimeOut, this, _1));
@@ -87,6 +88,7 @@ public:
 	{
 		if (error)
 		{
+			//!连接失败继续尝试连接
 			cout << "connect error: " << boost::system::system_error(error).what() << endl;
 			m_type = 0;
 			m_time.expires_from_now(boost::posix_time::milliseconds(2000));
@@ -103,26 +105,23 @@ public:
 			{
 				cout << "set_option error: " << ec.message() << endl;
 			}
-			
+			//开始接收数据
+			m_curRecv = 0;
+			Recv(2);
+			//开始定时发送数据
 			m_time.expires_from_now(boost::posix_time::milliseconds(2000));
 			m_time.async_wait(boost::bind(&CClient::TimeOut, this, _1));
-			Recv();
+
 		}
 	}
-	bool Recv()
+
+	//!读取指定长度的数据, (缓存位置自动修正).
+	bool Recv(unsigned short len)
 	{
-		if (m_type == 2)
-		{
-			m_socket.async_receive(asio::buffer(m_recvbuf, 2), boost::bind(&CClient::OnRecv, this, _1));
-		}
-		else if (m_type == 3)
-		{
-			m_socket.async_receive(asio::buffer(m_recvbuf+2, *(unsigned short *)(m_recvbuf) - 2), boost::bind(&CClient::OnRecv, this, _1));
-		}
-		
+		m_socket.async_receive(asio::buffer(m_recvbuf+m_curRecv, len), boost::bind(&CClient::OnRecv, this, _1, _2));
 		return true;	
 	}
-	void OnRecv(const boost::system::error_code& error)
+	void OnRecv(const boost::system::error_code& error, std::size_t bytes_transferred)
 	{
 		if (error)
 		{
@@ -130,65 +129,63 @@ public:
 			m_socket.close();
 			return ;
 		}
-		if (m_type == 2)
+		m_curRecv += bytes_transferred;
+		int chk = zsummer::protocol4z::CheckBuffIntegrity(m_recvbuf, m_curRecv, _BUF_LEN);
+		if (chk > 0)
 		{
-			if (*(unsigned short *)(m_recvbuf) > _BUF_LEN)
+			Recv((unsigned short)chk);
+			return;
+		}
+		if (chk < 0)
+		{
+			cout <<"recv error: CheckBuffIntegrity fail" << endl;
+			m_socket.close();
+			return;
+		}
+		
+
+		zsummer::protocol4z::ReadStream rs(m_recvbuf, m_curRecv);
+		unsigned short protocolID = 0;
+		unsigned short requestID = 0;
+		unsigned int sendtime =0;
+		unsigned long long counter = 0;
+		std::string text;
+		try
+		{
+			rs >> protocolID >> requestID >> counter>> sendtime >> text;
+			unsigned int now = zsummer::utility::GetTimeMillisecond();
+			now = now - sendtime;
+
+			if (now >= 100)
 			{
-				cout <<"recv error, type=2: recv error header len:" <<*(unsigned short *)(m_recvbuf) << endl;
-				m_socket.close();
-				return;
+				//cout << " recv warning: protocolID=" << protocolID << ", requestID=" << requestID << ", counter=" << counter << "used time=" << now << ", text=" << text << endl;
+				g_usetime2[9] ++;
 			}
 			else
 			{
-				m_type = 3;
-				Recv();
-			}
-		}
-		else if (m_type == 3)
-		{
-			zsummer::protocol4z::ReadStream rs(m_recvbuf, *(unsigned short *)(m_recvbuf));
-			unsigned short protocolID = 0;
-			unsigned short requestID = 0;
-			unsigned int sendtime =0;
-			unsigned long long counter = 0;
-			std::string text;
-			try
-			{
-				rs >> protocolID >> requestID >> counter>> sendtime >> text;
-				unsigned int now = zsummer::utility::GetTimeMillisecond();
-				now = now - sendtime;
-
-				if (now >= 100)
+				if (now < 10)
 				{
-					//cout << " recv warning: protocolID=" << protocolID << ", requestID=" << requestID << ", counter=" << counter << "used time=" << now << ", text=" << text << endl;
-					g_usetime2[9] ++;
+					g_usetime1[now] ++;
 				}
 				else
 				{
-					if (now < 10)
-					{
-						g_usetime1[now] ++;
-					}
-					else
-					{
-						g_usetime2[now/10] ++;
-					}
-					
-					
+					g_usetime2[now/10] ++;
 				}
-				//cout << " recv: protocolID=" << protocolID << ", requestID=" << requestID << ", counter=" << counter << "used time=" << now << ", text=" << text << endl;
+						
 			}
-			catch (std::runtime_error e)
-			{
-				cout <<"protocol error: " << e.what() << endl;
-				m_socket.close();
-				return;
-			}
-			m_type =2;
-			Recv();
+			//cout << " recv: protocolID=" << protocolID << ", requestID=" << requestID << ", counter=" << counter << "used time=" << now << ", text=" << text << endl;
 		}
+		catch (std::runtime_error e)
+		{
+			cout <<"protocol error: " << e.what() << endl;
+			m_socket.close();
+			return;
+		}
+		
 
+		m_curRecv = 0;
 		g_recvmsgs++;
+		Recv(2);
 		
 	}
 	bool Send()
@@ -200,15 +197,22 @@ public:
 		std::string text = "ffffffffffffffffffffffff";
 		zsummer::protocol4z::WriteStream ws(g_senddata, _BUF_LEN);
 		ws << protocolID << requestID << counter << sendtime << text;
-		m_socket.async_send(asio::buffer(g_senddata, *(unsigned short *)(g_senddata) ), boost::bind(&CClient::OnSend, this, _1));
+		m_socket.async_send(asio::buffer(g_senddata, *(unsigned short *)(g_senddata) ), boost::bind(&CClient::OnSend, this, _1, _2, ws.GetWriteLen()));
 		return true;
 	}
-	void OnSend(const boost::system::error_code& error)
+	void OnSend(const boost::system::error_code& error, std::size_t bytes_transferred, unsigned short needWrite)
 	{
 		if (error)
 		{
-			m_socket.close();
 			cout <<"send error: "  << boost::system::system_error(error).what() << endl;
+			m_socket.close();
+			return ;
+		}
+		//如果半包就关闭. 暂时不处理半包情况.
+		if (bytes_transferred != needWrite)
+		{
+			cout <<"send error: transferred data not integrity. trans=" << bytes_transferred << ", needWrite=" << needWrite << endl;
+			m_socket.close();
 			return ;
 		}
 		m_time.expires_from_now(boost::posix_time::milliseconds(SEND_INTERVAL+rand()%600));
@@ -238,11 +242,12 @@ private:
 	unsigned short m_port;
 	asio::ip::tcp::socket m_socket;
 	asio::deadline_timer m_time;
-	int m_type;// 0 init, 1 connect, 2 recved header, 3 recved body.
+	int m_type;// 0 init, 1 connect, 2 established.
 	char m_recvbuf[_BUF_LEN];
+	unsigned short m_curRecv;
 };
 
-
+//! 状态监控
 static asio::deadline_timer * g_ptimer = NULL;
 void Moniter(const boost::system::error_code& error )
 {
