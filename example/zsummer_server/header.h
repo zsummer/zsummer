@@ -44,7 +44,7 @@
 #include "../../depends/thread4z/thread.h"
 #include "../../depends/log4z/log4z.h"
 #include "../../network/SocketInterface.h"
-
+#include "../../depends/protocol4z/protocol4z.h"
 #include <iostream>
 #include <queue>
 #include <iomanip>
@@ -61,10 +61,10 @@ using namespace zsummer::network;
 
 
 
-//! 消息包 小头序 union可优雅的减少一次显示强制转换
-union Packet
+//! 消息包 
+struct Packet
 {
-	unsigned short _head;
+	unsigned short _len;
 	char		   _body[_MSG_BUF_LEN];
 };
 

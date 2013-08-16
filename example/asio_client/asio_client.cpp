@@ -146,15 +146,13 @@ public:
 
 		zsummer::protocol4z::ReadStream rs(m_recvbuf, m_curRecv);
 		unsigned short protocolID = 0;
-		unsigned short requestID = 0;
-		unsigned int sendtime =0;
-		unsigned long long counter = 0;
-		std::string text;
+		unsigned int clientTick = 0;
+		unsigned long long serverTime =0;
 		try
 		{
-			rs >> protocolID >> requestID >> counter>> sendtime >> text;
+			rs >> protocolID >> clientTick >> serverTime;
 			unsigned int now = zsummer::utility::GetTimeMillisecond();
-			now = now - sendtime;
+			now = now - clientTick;
 
 			if (now >= 100)
 			{
@@ -190,13 +188,9 @@ public:
 	}
 	bool Send()
 	{
-		unsigned short protocolID = 1;
-		unsigned short requestID = 32;
-		unsigned long long counter = 123;
-		unsigned int sendtime = zsummer::utility::GetTimeMillisecond();
-		std::string text = "ffffffffffffffffffffffff";
+		unsigned int clientTick = zsummer::utility::GetTimeMillisecond();
 		zsummer::protocol4z::WriteStream ws(g_senddata, _BUF_LEN);
-		ws << protocolID << requestID << counter << sendtime << text;
+		ws << (unsigned short)1 << clientTick;
 		m_socket.async_send(asio::buffer(g_senddata, *(unsigned short *)(g_senddata) ), boost::bind(&CClient::OnSend, this, _1, _2, ws.GetWriteLen()));
 		return true;
 	}
@@ -208,7 +202,7 @@ public:
 			m_socket.close();
 			return ;
 		}
-		//如果半包就关闭. 暂时不处理半包情况.
+		//如果半包就关闭. (测试用不需精细处理).
 		if (bytes_transferred != needWrite)
 		{
 			cout <<"send error: transferred data not integrity. trans=" << bytes_transferred << ", needWrite=" << needWrite << endl;

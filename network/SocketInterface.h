@@ -71,6 +71,8 @@ namespace zsummer
 		class IIOServerCallback
 		{
 		public:
+			IIOServerCallback(){}
+			virtual ~IIOServerCallback(){}
 			//! IIOServer.post(pUser) callback.
 			virtual bool OnPost(void *pUser) = 0;
 			//! IIOServer's Timerr. per 1 seconds trigger. Don't spend too much time in here.
@@ -94,6 +96,8 @@ namespace zsummer
 		class ITcpSocketCallback
 		{
 		public:
+			ITcpSocketCallback(){}
+			virtual ~ITcpSocketCallback(){}
 			virtual bool OnConnect(bool bConnected) = 0;
 			virtual bool OnRecv(unsigned int nRecvedLen) = 0;
 			virtual bool OnSend(unsigned int nSentLen) = 0;
@@ -116,6 +120,8 @@ namespace zsummer
 		class ITcpAcceptCallback
 		{
 		public:
+			ITcpAcceptCallback(){}
+			virtual ~ITcpAcceptCallback(){}
 			virtual bool OnAccept(ITcpSocket * s) = 0;
 			virtual bool OnClose() = 0;
 		};
