@@ -269,7 +269,9 @@ inline int CheckBuffIntegrity(const char * buff, unsigned short curBuffLen, unsi
 	unsigned short packLen = 0;
 	if (!reversalEndianType)
 	{
-		packLen = (unsigned short)*buff;
+		char * p = (char *)&packLen;
+		*p++ = buff[0];
+		*p = buff[1];
 	}
 	else
 	{
