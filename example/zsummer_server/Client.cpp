@@ -107,11 +107,11 @@ void CClient::MessageEntry(zsummer::protocol4z::ReadStream & rs)
 	case 1:
 		{
 			unsigned int clientTick = 0;
-			unsigned long long serverTime = time(NULL);
-			rs >> clientTick;
-			char buf[500];
-			zsummer::protocol4z::WriteStream ws(buf, 500);
-			ws << protocolID << clientTick << serverTime;
+			std::string text;
+			rs >> clientTick >> text;
+			char buf[_MSG_BUF_LEN];
+			zsummer::protocol4z::WriteStream ws(buf, _MSG_BUF_LEN);
+			ws << protocolID << clientTick << text;
 			Send(buf, ws.GetWriteLen());
 		}
 		break;
