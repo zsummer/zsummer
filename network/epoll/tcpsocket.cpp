@@ -111,6 +111,7 @@ bool CTcpSocket::DoConnect(const char *ip, unsigned short port)
 	}
 
 	SetNonBlock(m_handle._socket);
+	SetNoDelay(m_handle._socket);
 	m_handle._event.events = EPOLLOUT;
 	m_handle._event.data.ptr = &m_handle;
 	m_handle._ptr = this;
@@ -121,7 +122,7 @@ bool CTcpSocket::DoConnect(const char *ip, unsigned short port)
 	m_addr.sin_port = htons(port);
 	if (connect(m_handle._socket, (sockaddr *) &m_addr, sizeof(m_addr))!=0)
 	{
-		LCF("ERR: connect err! errno=" << strerror(errno));
+		LCD("ERR: connect err! errno=" << strerror(errno));
 	}
 	
 	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_ADD, m_handle._socket, &m_handle._event) != 0)
