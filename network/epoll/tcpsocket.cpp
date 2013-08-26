@@ -58,9 +58,9 @@ CTcpSocket::CTcpSocket()
 
 	m_bNeedDestroy = false;
 
-	m_iRecvNeedLen  = 0;
+	m_iRecvLen  = 0;
 	m_pRecvBuf = NULL;
-	m_iSendNeedLen = 0;
+	m_iSendLen = 0;
 	m_pSendBuf = NULL;
 
 }
@@ -75,10 +75,10 @@ CTcpSocket::~CTcpSocket()
 {
 	m_ios = ios;
 	m_cb = cb;
-	if (m_handle._socket != 0)
+	if (m_handle._fd != 0)
 	{
 		m_handle._event.events = 0;
-		if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_ADD, m_handle._socket, &m_handle._event) != 0)
+		if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_ADD, m_handle._fd, &m_handle._event) != 0)
 		{
 			LCF("ERR: epoll ctl  socket err!  errno=" << strerror(errno));
 			return false;
@@ -102,16 +102,21 @@ bool CTcpSocket::DoConnect(const char *ip, unsigned short port)
 		LCF("ERR: IIOServer not bind!");
 		return false;
 	}
-
-	m_handle._socket = socket(AF_INET, SOCK_STREAM, 0);
-	if (m_handle._socket == -1)
+	if (m_handle._fd != 0)
+	{
+		LCF("DoConnect ERR:  fd aready used!");
+		return false;
+	}
+	
+	m_handle._fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (m_handle._fd == -1)
 	{
 		LCE("ERR: socket create err errno =" << strerror(errno));
 		return false;
 	}
 
-	SetNonBlock(m_handle._socket);
-	SetNoDelay(m_handle._socket);
+	SetNonBlock(m_handle._fd);
+	SetNoDelay(m_handle._fd);
 	m_handle._event.events = EPOLLOUT;
 	m_handle._event.data.ptr = &m_handle;
 	m_handle._ptr = this;
@@ -120,12 +125,12 @@ bool CTcpSocket::DoConnect(const char *ip, unsigned short port)
 	m_addr.sin_family = AF_INET;
 	m_addr.sin_addr.s_addr = inet_addr(ip);
 	m_addr.sin_port = htons(port);
-	if (connect(m_handle._socket, (sockaddr *) &m_addr, sizeof(m_addr))!=0)
+	if (connect(m_handle._fd, (sockaddr *) &m_addr, sizeof(m_addr))!=0)
 	{
-		LCD("ERR: connect err! errno=" << strerror(errno));
+		LCD("connect warning: errno=" << strerror(errno));
 	}
 	
-	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_ADD, m_handle._socket, &m_handle._event) != 0)
+	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_ADD, m_handle._fd, &m_handle._event) != 0)
 	{
 		LCE("epoll ctl  socket err!  errno=" << strerror(errno));
 		return false;
@@ -146,27 +151,36 @@ bool CTcpSocket::DoSend(char * buf, unsigned int len)
 {
 	if (m_cb == NULL)
 	{
-		LCF("ERR: callback not set!");
+		LCF("DoSend ERR: callback not set!");
 		return false;
 	}
 	if (m_ios == NULL)
 	{
-		LCF("ERR: IIOServer not bind!");
+		LCF("DoSend ERR: IIOServer not bind!");
 		return false;
 	}
-
-
 	if (len == 0)
 	{
-		LCE("ERR: argument err! len ==0");
+		LCE("DoSend ERR: argument err! len ==0");
 		return false;
 	}
-
+	if (m_pSendBuf != NULL || m_iSendLen != 0)
+	{
+		LCE("DoSend ERR:  (m_pSendBuf != NULL || m_iSendLen != 0) == TRUE");
+		return false;
+	}
+	if (m_handle._event.events & EPOLLOUT)
+	{
+		LCE("DoSend ERR:  (m_handle._event.events & EPOLLOUT) == TRUE");
+		return false;
+	}
+	
+	
 	m_pSendBuf = buf;
-	m_iSendNeedLen = len;
+	m_iSendLen = len;
 
 	m_handle._event.events = m_handle._event.events|EPOLLOUT;
-	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_MOD, m_handle._socket, &m_handle._event) != 0)
+	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_MOD, m_handle._fd, &m_handle._event) != 0)
 	{
 		LCE("ERR: epoll ctl  socket err!  errno=" << strerror(errno));
 		Close();
@@ -181,27 +195,35 @@ bool CTcpSocket::DoRecv(char * buf, unsigned int len)
 {
 	if (m_cb == NULL)
 	{
-		LCF("ERR: callback not set!");
+		LCF("DoRecv ERR: callback not set!");
 		return false;
 	}
 	if (m_ios == NULL)
 	{
-		LCF("ERR: IIOServer not bind!");
+		LCF("DoRecv ERR: IIOServer not bind!");
 		return false;
 	}
-
-
 	if (len == 0 )
 	{
-		LCF("ERR: argument err !!!  len==0");
+		LCF("DoRecv ERR: argument err !!!  len==0");
+		return false;
+	}
+	if (m_pRecvBuf != NULL || m_iRecvLen != 0)
+	{
+		LCE("DoRecv ERR:  (m_pRecvBuf != NULL || m_iRecvLen != 0) == TRUE");
+		return false;
+	}
+	if (m_handle._event.events & EPOLLIN)
+	{
+		LCE("DoRecv ERR:  (m_handle._event.events & EPOLLIN) == TRUE");
 		return false;
 	}
 	
 	m_pRecvBuf = buf;
-	m_iRecvNeedLen = len;
+	m_iRecvLen = len;
 
 	m_handle._event.events = m_handle._event.events|EPOLLIN;
-	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_MOD, m_handle._socket, &m_handle._event) != 0)
+	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_MOD, m_handle._fd, &m_handle._event) != 0)
 	{
 		LCF("ERR: epoll ctl  socket err!  errno=" << strerror(errno));
 		Close();
@@ -217,14 +239,18 @@ bool CTcpSocket::OnEPOLLMessage(int type, int flag)
 	{
 		if (flag & EPOLLOUT)
 		{
-			m_cb->OnConnect(true);
 			m_handle._event.events = /*EPOLLONESHOT*/ 0;
-			m_handle._type = tagRegister::REG_RECV;
+			m_handle._type = tagRegister::REG_ESTABLISHED;
+			m_cb->OnConnect(true);
 		}
 		else 
 		{
-			close(m_handle._socket);
-			m_handle._socket = 0;
+			if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_DEL, m_handle._fd, &m_handle._event) != 0)
+			{
+				LCW("WAR: epoll ctl  del err!  errno=" << strerror(errno));
+			}
+			close(m_handle._fd);
+			m_handle._fd = 0;
 			m_cb->OnConnect(false);
 		}
 		return true;
@@ -241,7 +267,13 @@ bool CTcpSocket::OnEPOLLMessage(int type, int flag)
 
 	if (flag & EPOLLIN)
 	{
-			int ret = recv(m_handle._socket, m_pRecvBuf, m_iRecvNeedLen, 0);
+		if (m_pRecvBuf == NULL || m_iRecvLen == 0)
+		{
+			LCE("ERR: ON EPOLLIN: m_pRecvBuf=" <<(void*)m_pRecvBuf << ", m_iRecvLen=" << m_iRecvLen);
+		}
+		else
+		{
+			int ret = recv(m_handle._fd, m_pRecvBuf, m_iRecvLen, 0);
 			if (ret == 0 || (ret ==-1 && (errno !=EAGAIN && errno != EWOULDBLOCK)) )
 			{
 				LCI("ERR: recv ret= " << ret << "errno=" << strerror(errno));
@@ -251,8 +283,10 @@ bool CTcpSocket::OnEPOLLMessage(int type, int flag)
 
 			if (ret != -1)
 			{
+				m_pRecvBuf = NULL;
+				m_iRecvLen = 0;
 				m_handle._event.events = m_handle._event.events& ~EPOLLIN;
-				if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_MOD, m_handle._socket, &m_handle._event) != 0)
+				if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_MOD, m_handle._fd, &m_handle._event) != 0)
 				{
 					LCE("ERR: epoll ctl  socket err!  errno=" << strerror(errno));
 					Close();
@@ -260,12 +294,18 @@ bool CTcpSocket::OnEPOLLMessage(int type, int flag)
 				}
 				m_cb->OnRecv(ret);
 			}
+		}
 	}
 
 	if (flag & EPOLLOUT)
 	{
-
-			int ret = send(m_handle._socket, m_pSendBuf, m_iSendNeedLen, 0);
+		if (m_pSendBuf == NULL || m_iSendLen == 0)
+		{
+			LCE("ERR: ON EPOLLOUT: m_pSendBuf=" <<(void*)m_pSendBuf << ", m_iSendLen=" << m_iSendLen);
+		}
+		else
+		{
+			int ret = send(m_handle._fd, m_pSendBuf, m_iSendLen, 0);
 			if (ret == -1 && (errno != EAGAIN && errno != EWOULDBLOCK))
 			{
 				LCI("ERR: send -1, errno=" << strerror(errno));
@@ -275,8 +315,10 @@ bool CTcpSocket::OnEPOLLMessage(int type, int flag)
 
 			if (ret != -1)
 			{
+				m_pSendBuf = NULL;
+				m_iSendLen = 0;
 				m_handle._event.events = m_handle._event.events& ~EPOLLOUT;
-				if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_MOD, m_handle._socket, &m_handle._event) != 0)
+				if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_MOD, m_handle._fd, &m_handle._event) != 0)
 				{
 					LCE("ERR: epoll ctl  socket err!  errno=" << strerror(errno));
 					Close();
@@ -284,6 +326,7 @@ bool CTcpSocket::OnEPOLLMessage(int type, int flag)
 				}
 				m_cb->OnSend(ret);
 			}
+		}
 	}
 
 	return true;
@@ -292,12 +335,12 @@ bool CTcpSocket::OnEPOLLMessage(int type, int flag)
 
 bool CTcpSocket::Close()
 {
-	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_DEL, m_handle._socket, &m_handle._event) != 0)
+	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_DEL, m_handle._fd, &m_handle._event) != 0)
 	{
 		LCW("WAR: epoll ctl  del err!  errno=" << strerror(errno));
 	}
-	shutdown(m_handle._socket, SHUT_RDWR);
-	close(m_handle._socket);
+	shutdown(m_handle._fd, SHUT_RDWR);
+	close(m_handle._fd);
 	((CIOServer*)m_ios)->PostMsg(PCK_SOCKET_CLOSE, this);
 	return true;
 }

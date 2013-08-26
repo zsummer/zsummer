@@ -96,7 +96,7 @@ bool CIOServer::Initialize(IIOServerCallback *cb)
 		SetNoDelay(m_sockpair[1]);
 		m_recv._ptr = this;
 		m_recv._type = tagRegister::REG_THREAD;
-		m_recv._socket = m_sockpair[1];
+		m_recv._fd = m_sockpair[1];
 		m_recv._event.data.ptr = &m_recv;
 		m_recv._event.events = EPOLLIN;
 		if (epoll_ctl(m_epoll, EPOLL_CTL_ADD, m_sockpair[1], &m_recv._event) != 0)
@@ -158,7 +158,7 @@ void CIOServer::RunOnce()
 		if (pReg->_type == tagRegister::REG_THREAD)
 		{
 			char buf[1000];
-			while (recv(pReg->_socket, buf, 1000, 0) > 0){}
+			while (recv(pReg->_fd, buf, 1000, 0) > 0){}
 
 			MsgVct msgs;
 			m_msglock.Lock();
@@ -198,8 +198,7 @@ void CIOServer::RunOnce()
 		}
 		else
 		{
-			if    (pReg->_type != tagRegister::REG_RECV 
-				&& pReg->_type != tagRegister::REG_SEND
+			if    (pReg->_type != tagRegister::REG_ESTABLISHED 
 				&& pReg->_type != tagRegister::REG_CONNECT)
 			{
 				LCE("check register event type failed !!  type=" << pReg->_type);

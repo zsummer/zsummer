@@ -73,10 +73,10 @@ namespace zsummer
 
 		bool		m_bNeedDestroy;
 
-		unsigned int m_iRecvNeedLen;
+		unsigned int m_iRecvLen;
 		char	*	 m_pRecvBuf;
 
-		unsigned int m_iSendNeedLen;
+		unsigned int m_iSendLen;
 		char *		 m_pSendBuf;
 	};
 
