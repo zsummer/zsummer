@@ -184,7 +184,7 @@ public:
 			{
 				g_senddelay[MD_ERRORMS]++;
 			}
-			LOGD("send one msg, used time=" << senduse);
+			//LOGD("send one msg, used time=" << senduse);
 			
 			m_curSendLen = 0;
 			if (m_sendque.empty())
@@ -426,23 +426,28 @@ int main(int argc, char* argv[])
 	//! ip:port:count   分别对应服务器的IP PORT和要连接的socket数量.
 	char buf[100];
 	zsummer::utility::SleepMillisecond(500);// 让提示出现在日志后面.
-	cout <<"please entry: \"ip:port:link_count\",  like  127.0.0.1:80:100"<<endl;
-	cin >> buf;
-	char *pRet = strtok(buf, ":");
-	std::string ip = pRet?pRet:"";
-	pRet = strtok(NULL, ":");
-	unsigned short port = pRet?(unsigned short)atoi(pRet):0;
-	pRet = strtok(NULL, ":");
-	int linkcount = pRet?atoi(pRet):0;
-	if (port == 0 || linkcount <=0)
+	cout <<"please entry ip" <<endl;
+	std::string ip;
+	cin >> ip;
+	unsigned short port =0;
+	cout << "please entry port" << endl;
+	cin >> port;
+	cout << "please entry create link count" << endl;
+	unsigned short count = 0;
+	cin >> count;
+	if (port == 0 || count <=0)
 	{
-		LOGF("user entry string error. string=" << buf );
+		LOGF("user entry is error. ip=" << ip << ", port=" << port << ", count=" << count);
 		return 0;
+	}
+	else
+	{
+		LOGI("user entry is ip=" << ip << ", port=" << port << ", count=" << count);
 	}
 
 
 	CZSummer summer;
-	summer.Run(ip, port, linkcount);
+	summer.Run(ip, port, count);
 	
 
 
