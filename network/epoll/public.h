@@ -74,6 +74,7 @@ namespace zsummer
 			REG_ESTABLISHED, //socket write & read
 			REG_CONNECT, // connect
 			REG_THREAD, // user message router
+			REG_INVALIDE,
 		};
 	};
 
@@ -99,6 +100,15 @@ namespace zsummer
 	{
 		int bTrue = true?1:0;
 		return setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char*)&bTrue, sizeof(bTrue)) == 0;
+	}
+	inline bool EPOLLMod(int epfd, int fd,  struct epoll_event *event)
+	{
+		if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, event) != 0)
+		{
+			epoll_ctl(epfd, EPOLL_CTL_DEL, fd, event);
+			return false;
+		}
+		return true;
 	}
 }
 

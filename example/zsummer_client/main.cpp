@@ -83,7 +83,7 @@ enum TIME_DELAY
 	TM_40MS,
 	TM_60MS,
 	TM_100MS,
-	TM_ERRORMS,// error dalay time
+	TM_LOWMS,// error dalay time
 	TM_END,
 };
 int g_delay[TD_END][TM_END] = {0};
@@ -119,7 +119,7 @@ inline void addDelayData(TYPE_DELAY td, unsigned int usedtime)
 	}
 	else
 	{
-		g_delay[td][TM_ERRORMS]++;
+		g_delay[td][TM_LOWMS]++;
 	}
 }
 
@@ -379,7 +379,7 @@ public:
 			static unsigned int count = 0;
 			if (count%5 == 0)
 			{
-				LOGI("-- type -- -- 1MS -- 5MS -- 10MS -- 20MS -- 40MS -- 60MS -- 100MS -- ERRORMS --");
+				LOGI("-- type -- -- 1MS -- 5MS -- 10MS -- 20MS -- 40MS -- 60MS -- 100MS -- LOW MS --");
 				for (int i=0; i<TD_END; i++)
 				{
 					LOGI("-- " << i<<" -- -- " << g_delay[i][TM_1MS]
@@ -390,7 +390,7 @@ public:
 					<< " -- " << g_delay[i][TM_40MS]
 					<< " -- " << g_delay[i][TM_60MS]
 					<< " -- " << g_delay[i][TM_100MS]
-					<< " -- " << g_delay[i][TM_ERRORMS] << " --");
+					<< " -- " << g_delay[i][TM_LOWMS] << " --");
 				}
 			}
 			count++;

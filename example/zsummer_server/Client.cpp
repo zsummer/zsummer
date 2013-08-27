@@ -92,7 +92,7 @@ bool CClient::OnRecv(unsigned int nRecvedLen)
 		return false;
 	}
 	//! ¼ÌÐøÊÕ°ü
-	memset(&m_recving, 0, sizeof(m_recving));
+	m_recving._len = 0;
 	m_curRecvLen = 0;
 	m_socket->DoRecv(m_recving._body, 2);
 	return true;
