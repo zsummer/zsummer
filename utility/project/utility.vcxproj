@@ -171,7 +171,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="..\utility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\cirque.h" />
