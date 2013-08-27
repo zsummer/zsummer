@@ -64,17 +64,63 @@ struct Packet
 };
 
 
-int g_msgdelay[10] = {0};
-int g_senddelay[10] = {0};
-enum MSG_DELAY
+//统计
+
+enum TYPE_DELAY
 {
-	MD_1MS, // < 1 ms
-	MD_5MS, // < 5 ms
-	MD_10MS,
-	MD_100MS,
-	MD_1000MS,
-	MD_ERRORMS,// error dalay time
+	TD_SEND,
+	TD_RECV,
+	TD_TOTAL,
+	TD_END,
 };
+enum TIME_DELAY
+{
+	TM_1MS, // < 1 ms
+	TM_5MS, // < 5 ms
+	TM_10MS,
+	TM_20MS,
+	TM_40MS,
+	TM_60MS,
+	TM_100MS,
+	TM_ERRORMS,// error dalay time
+	TM_END,
+};
+int g_delay[TD_END][TM_END] = {0};
+inline void addDelayData(TYPE_DELAY td, unsigned int usedtime)
+{
+	if (usedtime <= 1)
+	{
+		g_delay[td][TM_1MS]++;
+	}
+	else if (usedtime <= 5)
+	{
+		g_delay[td][TM_5MS]++;
+	}
+	else if (usedtime <= 10)
+	{
+		g_delay[td][TM_10MS]++;
+	}
+	else if (usedtime <= 20)
+	{
+		g_delay[td][TM_20MS]++;
+	}
+	else if (usedtime <= 40)
+	{
+		g_delay[td][TM_40MS]++;
+	}
+	else if (usedtime <= 60)
+	{
+		g_delay[td][TM_60MS]++;
+	}
+	else if (usedtime <= 100)
+	{
+		g_delay[td][TM_100MS]++;
+	}
+	else
+	{
+		g_delay[td][TM_ERRORMS]++;
+	}
+}
 
 //! 上层Socekt Client的二次封装
 class CClient :public zsummer::network::ITcpSocketCallback
@@ -118,6 +164,7 @@ public:
 		}
 
 		//! 解包完成 进行消息处理
+		unsigned int testTimeUsed = zsummer::utility::GetTimeMillisecond();
 		zsummer::protocol4z::ReadStream rs(m_recving._body, m_curRecvLen);
 		try
 		{
@@ -132,6 +179,8 @@ public:
 		//! 继续收包
 		memset(&m_recving, 0, sizeof(m_recving));
 		m_curRecvLen = 0;
+		testTimeUsed = zsummer::utility::GetTimeMillisecond()-testTimeUsed;
+		addDelayData(TD_RECV, testTimeUsed);
 		m_socket->DoRecv(m_recving._body, 2);
 		return true;
 	}
@@ -160,31 +209,7 @@ public:
 		{
 			unsigned int senduse = zsummer::utility::GetTimeMillisecond();
 			senduse = senduse - m_sending._senddelay;
-			if (senduse <=1)
-			{
-				g_senddelay[MD_1MS]++;
-			}
-			else if (senduse <= 5)
-			{
-				g_senddelay[MD_5MS]++;
-			}
-			else if (senduse <= 10)
-			{
-				g_senddelay[MD_10MS]++;
-			}
-			else if (senduse <= 100)
-			{
-				g_senddelay[MD_100MS]++;
-			}
-			else if (senduse <= 1000)
-			{
-				g_senddelay[MD_1000MS]++;
-			}
-			else
-			{
-				g_senddelay[MD_ERRORMS]++;
-			}
-			//LOGD("send one msg, used time=" << senduse);
+			addDelayData(TD_SEND, senduse);
 			
 			m_curSendLen = 0;
 			if (m_sendque.empty())
@@ -222,31 +247,7 @@ public:
 				
 				unsigned int curTick = zsummer::utility::GetTimeMillisecond();
 				curTick = curTick - localTick;
-				if (curTick <= 1)
-				{
-					g_msgdelay[MD_1MS]++;
-				}
-				else if (curTick <= 5)
-				{
-					g_msgdelay[MD_5MS]++;
-				}
-				else if (curTick <= 10)
-				{
-					g_msgdelay[MD_10MS]++;
-				}
-				else if (curTick <= 100)
-				{
-					g_msgdelay[MD_100MS]++;
-				}
-				else if (curTick <= 1000)
-				{
-					g_msgdelay[MD_1000MS]++;
-				}
-				else
-				{
-					g_msgdelay[MD_ERRORMS]++;
-				}
-//				LOGD("recv one msg, used time=" << curTick - localTick);
+				addDelayData(TD_TOTAL, curTick);
 				
 				
 			}
@@ -373,22 +374,21 @@ public:
 		//触发统计
 		{
 			static unsigned int count = 0;
-			if (count%3 == 0)
+			if (count%5 == 0)
 			{
-				LOGI("\nMSG TIME DELAY : MD<1MS=" << g_msgdelay[MD_1MS]
-				<< " MD<5MS=" << g_msgdelay[MD_5MS]
-				<< " MD<10MS=" << g_msgdelay[MD_10MS]
-				<< " MD<100MS=" << g_msgdelay[MD_100MS]
-				<< " MD<1000MS=" << g_msgdelay[MD_1000MS]
-				<< " MD<ERRORMS=" << g_msgdelay[MD_ERRORMS]
-				<< "\n"
-				<< "SEND TIME DELAY : MD<1MS=" << g_msgdelay[MD_1MS]
-				<< " MD<5MS=" << g_senddelay[MD_5MS]
-				<< " MD<10MS=" << g_senddelay[MD_10MS]
-				<< " MD<100MS=" << g_senddelay[MD_100MS]
-				<< " MD<1000MS=" << g_senddelay[MD_1000MS]
-				<< " MD<ERRORMS=" << g_senddelay[MD_ERRORMS]
-				);
+				LOGI("-- type -- -- 1MS -- 5MS -- 10MS -- 20MS -- 40MS -- 60MS -- 100MS -- ERRORMS --");
+				for (int i=0; i<TD_END; i++)
+				{
+					LOGI("-- " << i<<" -- -- " << g_delay[i][TM_1MS]
+					<< " -- " << g_delay[i][TM_1MS]
+					<< " -- " << g_delay[i][TM_5MS]
+					<< " -- " << g_delay[i][TM_10MS]
+					<< " -- " << g_delay[i][TM_20MS]
+					<< " -- " << g_delay[i][TM_40MS]
+					<< " -- " << g_delay[i][TM_60MS]
+					<< " -- " << g_delay[i][TM_100MS]
+					<< " -- " << g_delay[i][TM_ERRORMS] << " --");
+				}
 			}
 			count++;
 		}
