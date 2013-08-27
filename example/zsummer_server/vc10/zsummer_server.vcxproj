@@ -40,7 +40,6 @@
     <ClCompile Include="..\..\..\network\iocp\tcpsocket.cpp" />
     <ClCompile Include="..\..\..\depends\log4z\log4z.cpp" />
     <ClCompile Include="..\..\..\depends\thread4z\thread.cpp" />
-    <ClCompile Include="..\..\..\utility\utility.cpp" />
     <ClCompile Include="..\Client.cpp" />
     <ClCompile Include="..\Process.cpp" />
     <ClCompile Include="..\main.cpp" />

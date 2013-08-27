@@ -65,9 +65,6 @@
     <ClCompile Include="..\main.cpp">
       <Filter>main</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\utility\utility.cpp">
-      <Filter>utility</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\depends\log4z\log4z.cpp">
       <Filter>log</Filter>
     </ClCompile>
