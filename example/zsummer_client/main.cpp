@@ -71,6 +71,7 @@ enum TYPE_DELAY
 	TD_SEND,
 	TD_RECV,
 	TD_TOTAL,
+	TD_WHILE,
 	TD_END,
 };
 enum TIME_DELAY
@@ -336,7 +337,9 @@ public:
 		}
 		while(true)
 		{
+			unsigned int usedTime = zsummer::utility::GetTimeMillisecond();
 			m_ios->RunOnce();
+			addDelayData(TD_WHILE, zsummer::utility::GetTimeMillisecond() - usedTime);
 		}
 		return true;
 	}
