@@ -60,7 +60,7 @@ struct Packet
 {
 	unsigned short _len;
 	unsigned int   _senddelay;
-	char		   _body[_MSG_BUF_LEN];
+	char		   _orgdata[_MSG_BUF_LEN];
 };
 
 
@@ -83,10 +83,11 @@ enum TIME_DELAY
 	TM_40MS,
 	TM_60MS,
 	TM_100MS,
+	TM_1000MS,
 	TM_LOWMS,// error dalay time
 	TM_END,
 };
-int g_delay[TD_END][TM_END] = {0};
+int g_delay[TD_END][TM_END] = {{0}};
 inline void addDelayData(TYPE_DELAY td, unsigned int usedtime)
 {
 	if (usedtime <= 1)
@@ -116,6 +117,10 @@ inline void addDelayData(TYPE_DELAY td, unsigned int usedtime)
 	else if (usedtime <= 100)
 	{
 		g_delay[td][TM_100MS]++;
+	}
+	else if (usedtime <= 1000)
+	{
+		g_delay[td][TM_1000MS]++;	
 	}
 	else
 	{
@@ -151,7 +156,7 @@ public:
 	virtual bool OnRecv(unsigned int nRecvedLen)
 	{
 		m_curRecvLen += nRecvedLen;
-		int needRecv = zsummer::protocol4z::CheckBuffIntegrity(m_recving._body, m_curRecvLen, _MSG_BUF_LEN);
+		int needRecv = zsummer::protocol4z::CheckBuffIntegrity(m_recving._orgdata, m_curRecvLen, _MSG_BUF_LEN);
 		if ( needRecv == -1)
 		{
 			LOGE("killed socket: CheckBuffIntegrity error ");
@@ -160,13 +165,13 @@ public:
 		}
 		if (needRecv > 0)
 		{
-			m_socket->DoRecv(m_recving._body+m_curRecvLen, needRecv);
+			m_socket->DoRecv(m_recving._orgdata+m_curRecvLen, needRecv);
 			return true;
 		}
 
 		//! 解包完成 进行消息处理
 		unsigned int testTimeUsed = zsummer::utility::GetTimeMillisecond();
-		zsummer::protocol4z::ReadStream rs(m_recving._body, m_curRecvLen);
+		zsummer::protocol4z::ReadStream rs(m_recving._orgdata, m_curRecvLen);
 		try
 		{
 			MessageEntry(rs);
@@ -178,11 +183,12 @@ public:
 			return false;
 		}
 		//! 继续收包
-		memset(&m_recving, 0, sizeof(m_recving));
+		m_recving._len = 0;
+		m_recving._senddelay = 0;
 		m_curRecvLen = 0;
 		testTimeUsed = zsummer::utility::GetTimeMillisecond()-testTimeUsed;
 		addDelayData(TD_RECV, testTimeUsed);
-		m_socket->DoRecv(m_recving._body, 2);
+		m_socket->DoRecv(m_recving._orgdata, 2);
 		return true;
 	}
 	virtual bool OnConnect(bool bConnected)
@@ -204,7 +210,7 @@ public:
 		m_curSendLen += nSentLen;
 		if (m_curSendLen < m_sending._len)
 		{
-			m_socket->DoSend(&m_sending._body[m_curSendLen], m_sending._len - m_curSendLen);
+			m_socket->DoSend(&m_sending._orgdata[m_curSendLen], m_sending._len - m_curSendLen);
 		}
 		else if (m_curSendLen == m_sending._len)
 		{
@@ -216,14 +222,17 @@ public:
 			if (m_sendque.empty())
 			{
 				m_sending._len = 0;
+				m_sending._senddelay = 0;
 			}
 			else
 			{
 				Packet *p = m_sendque.front();
 				m_sendque.pop();
-				memcpy((char*)&m_sending, p, sizeof(m_sending));
+				memcpy(m_sending._orgdata, p->_orgdata, p->_len);
+				m_sending._len = p->_len;
+				m_sending._senddelay = p->_senddelay;
 				delete p;
-				m_socket->DoSend(m_sending._body, p->_len);
+				m_socket->DoSend(m_sending._orgdata, m_sending._len);
 			}
 		}
 		return true;
@@ -231,6 +240,7 @@ public:
 	virtual bool OnClose()
 	{
 		LOGI("Client Closed!");
+		m_establish = 0;
 		return true;
 	}
 	void MessageEntry(zsummer::protocol4z::ReadStream & rs)
@@ -273,17 +283,18 @@ public:
 			p = &m_sending;
 		}
 		p->_senddelay = zsummer::utility::GetTimeMillisecond();
-		zsummer::protocol4z::WriteStream ws(p->_body, _MSG_BUF_LEN);
+		zsummer::protocol4z::WriteStream ws(p->_orgdata, _MSG_BUF_LEN);
 		ws << (unsigned short) 1; //protocol id
 		ws << p->_senddelay; // local tick count
 		ws << m_text; // append text, fill the length protocol.
 		p->_len = ws.GetWriteLen();
 		if (p == &m_sending)
 		{
-			m_socket->DoSend(p->_body, p->_len);
+			m_socket->DoSend(p->_orgdata, p->_len);
 		}
 		else
 		{
+			//LOGW("m_sendque.push(p)" <<p);
 			m_sendque.push(p);
 		}
 	}
@@ -337,9 +348,9 @@ public:
 		}
 		while(true)
 		{
-			unsigned int usedTime = zsummer::utility::GetTimeMillisecond();
+			
 			m_ios->RunOnce();
-			addDelayData(TD_WHILE, zsummer::utility::GetTimeMillisecond() - usedTime);
+			
 		}
 		return true;
 	}
@@ -351,11 +362,12 @@ public:
 	//! IIOServer's Timerr. per 1 seconds trigger. Don't spend too much time in here.
 	virtual bool OnTimer()
 	{
-		//每秒200个延迟connect
-		int clientCount=m_clients.size();
+		//限定每秒200次connect
+		size_t clientCount=m_clients.size();
 		if (clientCount < m_clientMax)
 		{
 			int n=0;
+
 			while (clientCount++ < m_clientMax && n++ < 200)
 			{
 				CClient * p = new CClient;
@@ -368,9 +380,16 @@ public:
 		//触发socket定时器
 		else
 		{
-			for (int i=0; i<m_clients.size(); i++)
+			static unsigned int count = 0;
+			count++;
+			if (count%1==0)
 			{
-				m_clients[i]->OnTimer();
+				unsigned int usedTime = zsummer::utility::GetTimeMillisecond();
+				for (size_t i=0; i<m_clients.size(); i++)
+				{
+					m_clients[i]->OnTimer();
+				}
+				addDelayData(TD_WHILE, zsummer::utility::GetTimeMillisecond() - usedTime);
 			}
 		}
 
@@ -379,10 +398,10 @@ public:
 			static unsigned int count = 0;
 			if (count%5 == 0)
 			{
-				LOGI("-- type -- -- 1MS -- 5MS -- 10MS -- 20MS -- 40MS -- 60MS -- 100MS -- LOW MS --");
+				LOGI("-- type -- 1MS -- 5MS -- 10MS -- 20MS -- 40MS -- 60MS -- 100MS -- 1S -- LOW MS --");
 				for (int i=0; i<TD_END; i++)
 				{
-					LOGI("-- " << i<<" -- -- " << g_delay[i][TM_1MS]
+					LOGI("--  " << i << " "
 					<< " -- " << g_delay[i][TM_1MS]
 					<< " -- " << g_delay[i][TM_5MS]
 					<< " -- " << g_delay[i][TM_10MS]
@@ -390,6 +409,7 @@ public:
 					<< " -- " << g_delay[i][TM_40MS]
 					<< " -- " << g_delay[i][TM_60MS]
 					<< " -- " << g_delay[i][TM_100MS]
+					<< " -- " << g_delay[i][TM_1000MS]
 					<< " -- " << g_delay[i][TM_LOWMS] << " --");
 				}
 			}
@@ -403,7 +423,7 @@ private:
 	zsummer::network::ITcpAccept * m_accept;
 	std::string m_ip;
 	unsigned short m_port;
-	int m_clientMax;
+	size_t m_clientMax;
 	std::vector<CClient*> m_clients;
 };
  
@@ -427,7 +447,6 @@ int main(int argc, char* argv[])
 	zsummer::log4z::ILog4zManager::GetInstance()->Config("config.cfg");
 	zsummer::log4z::ILog4zManager::GetInstance()->Start();
 	//! ip:port:count   分别对应服务器的IP PORT和要连接的socket数量.
-	char buf[100];
 	zsummer::utility::SleepMillisecond(500);// 让提示出现在日志后面.
 	cout <<"please entry ip" <<endl;
 	std::string ip;
