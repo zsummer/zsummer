@@ -125,9 +125,12 @@ bool CTcpSocket::DoConnect(const char *ip, unsigned short port)
 	m_addr.sin_family = AF_INET;
 	m_addr.sin_addr.s_addr = inet_addr(ip);
 	m_addr.sin_port = htons(port);
-	if (connect(m_handle._fd, (sockaddr *) &m_addr, sizeof(m_addr))!=0)
+	
+	int ret = connect(m_handle._fd, (sockaddr *) &m_addr, sizeof(m_addr));
+	if (ret!=0 && errno != EINPROGRESS)
 	{
 		LCE("CTcpSocket::DoConnect()" << this << " ::connect error. epfd="<<((CIOServer *)m_ios)->m_epoll << ", handle fd=" << m_handle._fd << ", errno=" << strerror(errno));
+		return false;
 	}
 	
 	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_ADD, m_handle._fd, &m_handle._event) != 0)
@@ -135,6 +138,7 @@ bool CTcpSocket::DoConnect(const char *ip, unsigned short port)
 		LCE("CTcpSocket::DoConnect()" << this << " EPOLL_CTL_ADD error. epfd="<<((CIOServer *)m_ios)->m_epoll << ", handle fd=" << m_handle._fd << ", errno=" << strerror(errno));
 		return false;
 	}
+
 	return true;
 }
 
@@ -263,14 +267,19 @@ bool CTcpSocket::OnEPOLLMessage(int type, int flag)
 	}
 
 
-	if (flag & EPOLLHUP || flag & EPOLLERR )
+	if (flag & EPOLLHUP)
 	{
-		LCE("CTcpSocket::OnEPOLLMessage()" << this << " EPOLLHUP EPOLLERR error. epfd="<<((CIOServer *)m_ios)->m_epoll << ", handle fd=" << m_handle._fd << ", errno=" << strerror(errno));
+		//LCI("CTcpSocket::OnEPOLLMessage()" << this << " EPOLLHUP  error. epfd="<<((CIOServer *)m_ios)->m_epoll << ", handle fd=" << m_handle._fd << ", events=" << flag);
 		Close();
 		return false;
 	}
 
-
+	if (flag & EPOLLERR)
+	{
+		//LCI("CTcpSocket::OnEPOLLMessage()" << this << "  EPOLLERR error. epfd="<<((CIOServer *)m_ios)->m_epoll << ", handle fd=" << m_handle._fd << ", events=" << flag);
+		Close();
+		return false;
+	}
 	if (flag & EPOLLIN)
 	{
 		if (m_pRecvBuf == NULL || m_iRecvLen == 0)
