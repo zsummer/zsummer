@@ -12,7 +12,7 @@ message(${source})
 link_libraries( rt pthread)
 add_definitions( -g -ggdb -Wall -O0)
 
-set(EXECUTABLE_OUTPUT_PATH "./bin/")
+set(EXECUTABLE_OUTPUT_PATH "../bin/")
 add_executable(zsummer_client ${source})
 
 

@@ -444,7 +444,7 @@ int main(int argc, char* argv[])
 	signal( SIGCHLD, SIG_IGN);
 #endif
 	//! 启动日志服务
-	zsummer::log4z::ILog4zManager::GetInstance()->Config("config.cfg");
+	zsummer::log4z::ILog4zManager::GetInstance()->Config("client.cfg");
 	zsummer::log4z::ILog4zManager::GetInstance()->Start();
 	//! ip:port:count   分别对应服务器的IP PORT和要连接的socket数量.
 	zsummer::utility::SleepMillisecond(500);// 让提示出现在日志后面.
