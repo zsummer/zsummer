@@ -39,7 +39,7 @@
  * AUTHORS:  YaweiZhang <yawei_zhang@foxmail.com>
  * VERSION:  4.0.0
  * PURPOSE:  A lightweight C++ library for network.
- * CREATION: 2010.8.29
+ * CREATION: 2010.9.6
  * LCHANGE:  -
  * LICENSE:  Expat/MIT License, See Copyright Notice at the begin of this file.
  */
@@ -62,7 +62,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
+#include <assert.h>
+#include <iostream>
 #ifdef WIN32
 #include <WinSock2.h>
 #include <Windows.h>
@@ -88,18 +89,49 @@ inline void SleepMillisecond(unsigned int ms)
 #endif
 }
 
-inline unsigned int GetTimeMillisecond()
+
+
+inline unsigned long long GetTimeMicrosecond()
+{
+#ifdef WIN32
+	FILETIME ft;
+	GetSystemTimeAsFileTime(&ft);
+	unsigned long long now = ft.dwHighDateTime;
+	now <<= 32;
+	now |= ft.dwLowDateTime;
+	now /=10;
+	now -=11644473600000000Ui64;
+	return now;
+#else
+	struct timeval tm;
+	gettimeofday(&tm, NULL);
+	return ((unsigned long long) tm.tv_sec * 1000 *1000 + (tm.tv_usec));
+#endif
+}
+
+inline unsigned long long GetTimeMillisecond()
+{
+	return GetTimeMicrosecond()/1000;
+}
+
+inline unsigned long long GetTickMillisecond()
 {
 #ifdef WIN32
 	return GetTickCount();
 #else
-	struct timeval tm;
-	gettimeofday(&tm, NULL);
-	return (tm.tv_sec * 1000 + (tm.tv_usec/1000));
+	timespec ts;
+	ts.tv_sec = 0;
+	ts.tv_nsec = 0;
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0)
+	{
+		return ts.tv_sec*1000 + ts.tv_nsec/1000/1000;
+	}
+	assert(0);
+	return 0;
 #endif
 }
 
-inline unsigned long long GetTimeMicrosecond()
+inline unsigned long long GetTickMicrosecond()
 {
 #ifdef WIN32
 	LARGE_INTEGER lip;
@@ -108,9 +140,15 @@ inline unsigned long long GetTimeMicrosecond()
 	QueryPerformanceCounter(&lic);
 	return (unsigned long long)(lic.QuadPart*1000/(lip.QuadPart/1000));
 #else
-	struct timeval tm;
-	gettimeofday(&tm, NULL);
-	return ((unsigned long long )tm.tv_sec) * 1000 * 1000 + (unsigned long long)tm.tv_usec;
+	timespec ts;
+	ts.tv_sec = 0;
+	ts.tv_nsec = 0;
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0)
+	{
+		return ts.tv_sec*1000*1000 + ts.tv_nsec/1000;
+	}
+	assert(0);
+	return 0;
 #endif
 }
 
