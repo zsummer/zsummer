@@ -52,7 +52,7 @@ CIOServer::CIOServer()
 {
 	m_cb = NULL;
 	m_epoll = 0;
-	m_lasttime = 0;
+	m_nextExpire = (unsigned long long)-1;
 	m_sockpair[0] = 0;
 	m_sockpair[1] = 0;
 }
@@ -71,7 +71,7 @@ bool CIOServer::Initialize(IIOServerCallback *cb)
 		g_coreID = zsummer::log4z::ILog4zManager::GetInstance()->FindLogger("NetWork");
 	}
 	//assert(g_coreID != -1);
-	
+	m_nextExpire = (unsigned long long)-1;
 	m_cb = cb;
 	if (m_epoll != 0)
 	{
@@ -126,9 +126,56 @@ void CIOServer::Post(void *pUser)
 	PostMsg(PCK_USER_DATA, pUser);
 }
 
+unsigned long long CIOServer::CreateTimer(unsigned int delayms, ITimerCallback * cb)
+{
+	unsigned long long now = zsummer::utility::GetTimeMillisecond();
+	unsigned long long expire = now+delayms;
+	assert(!(expire&0xfffff00000000000));
+	expire <<= 20;
+	{
+		CAutoLock l(m_lockTimer);
+		m_queSeq++;
+		expire |= (m_queSeq&0xfffff);
+		m_queTimer.insert(std::make_pair(expire, cb));
+		if (m_nextExpire > now+delayms || m_nextExpire < now)
+		{
+			m_nextExpire = now+delayms;
+		}
+	}
+	//LCI("create timerID=" << expire << " expire time= " << delayms );
+	return expire;
+}
+
+bool CIOServer::CancelTimer(unsigned long long timerID)
+{
+	bool bRet = false;
+	{
+		CAutoLock l(m_lockTimer);
+		std::map<unsigned long long, ITimerCallback*>::iterator iter = m_queTimer.find(timerID);
+		if (iter != m_queTimer.end())
+		{
+			m_queTimer.erase(iter);
+			bRet = true;
+		}
+	}
+	return bRet;
+}
+
 void CIOServer::RunOnce()
 {
-	int retCount = epoll_wait(m_epoll, m_events, 5000,  1000);
+	int dwDelayMs =0;
+	unsigned long long nowMs = zsummer::utility::GetTimeMillisecond();
+	dwDelayMs = (int) (m_nextExpire -nowMs);
+	if (dwDelayMs > 100)
+	{
+		dwDelayMs = 100;
+	}
+	else if (dwDelayMs < 10)
+	{
+		dwDelayMs = 10;
+	}
+
+	int retCount = epoll_wait(m_epoll, m_events, 1000,  dwDelayMs);
 	if (retCount == -1)
 	{
 		if (errno != EINTR)
@@ -139,15 +186,51 @@ void CIOServer::RunOnce()
 		return;
 	}
 	//check timer
+	//检查定时器超时状态
 	{
-		unsigned int curTime = GetTimeMillisecond();
-		if (curTime - m_lasttime > 1000)
+		if (!m_queTimer.empty())
 		{
-			m_lasttime = curTime;
-			m_cb->OnTimer();
+			nowMs = zsummer::utility::GetTimeMillisecond();
+			unsigned long long expire = m_nextExpire;
+			if (expire <= nowMs)
+			{
+				std::vector<std::pair<unsigned long long, ITimerCallback*> > allexpire;
+				{
+					CAutoLock l(m_lockTimer);
+					while(1)
+					{
+						if (m_queTimer.empty())
+						{
+							m_nextExpire = (unsigned long long)-1;
+							//LCI("m_queTimer.empty()");
+							break;
+						}
+						std::map<unsigned long long, ITimerCallback*>::iterator iter = m_queTimer.begin();
+						unsigned long long nextexpire = (iter->first)>>20;
+						if (nowMs < nextexpire)
+						{
+							m_nextExpire = nextexpire;
+							//LCI("next timerID=" << iter->first << ", next expire=" << nextexpire-cur);
+							break;
+						}
+						//LCI("timer expire, timeID=" << iter->first);
+						allexpire.push_back(*iter);
+						m_queTimer.erase(iter);
+					}
+				}
+				//LCI("allexpire size=" << allexpire.size());
+				for (std::vector<std::pair<unsigned long long, ITimerCallback*> >::iterator iter = allexpire.begin(); iter != allexpire.end(); ++iter)
+				{
+					iter->second->OnTimer(iter->first);
+				}
+			}
+
 		}
+
+
 		if (retCount == 0) return;//timeout
 	}
+
 
 		
 	for (int i=0; i<retCount; i++)

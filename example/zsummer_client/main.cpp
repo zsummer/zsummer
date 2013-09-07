@@ -59,7 +59,7 @@ using namespace std;
 struct Packet
 {
 	unsigned short _len;
-	unsigned int   _senddelay;
+	unsigned long long   _senddelay;
 	char		   _orgdata[_MSG_BUF_LEN];
 };
 
@@ -87,8 +87,8 @@ enum TIME_DELAY
 	TM_LOWMS,// error dalay time
 	TM_END,
 };
-int g_delay[TD_END][TM_END] = {{0}};
-inline void addDelayData(TYPE_DELAY td, unsigned int usedtime)
+unsigned long long g_delay[TD_END][TM_END] = {{0}};
+inline void addDelayData(TYPE_DELAY td, unsigned long long usedtime)
 {
 	if (usedtime <= 1)
 	{
@@ -127,9 +127,9 @@ inline void addDelayData(TYPE_DELAY td, unsigned int usedtime)
 		g_delay[td][TM_LOWMS]++;
 	}
 }
-
+zsummer::network::IIOServer * g_pios;
 //! 上层Socekt Client的二次封装
-class CClient :public zsummer::network::ITcpSocketCallback
+class CClient :public zsummer::network::ITcpSocketCallback, public zsummer::network::ITimerCallback
 {
 public:
 	CClient()
@@ -146,7 +146,7 @@ public:
 	{
 
 	}
-	void OnTimer()
+	void OnTimer(unsigned long long timerID)
 	{
 		if (m_establish)
 		{
@@ -170,7 +170,7 @@ public:
 		}
 
 		//! 解包完成 进行消息处理
-		unsigned int testTimeUsed = zsummer::utility::GetTimeMillisecond();
+		unsigned long long testTimeUsed = zsummer::utility::GetTimeMillisecond();
 		zsummer::protocol4z::ReadStream rs(m_recving._orgdata, m_curRecvLen);
 		try
 		{
@@ -189,6 +189,7 @@ public:
 		testTimeUsed = zsummer::utility::GetTimeMillisecond()-testTimeUsed;
 		addDelayData(TD_RECV, testTimeUsed);
 		m_socket->DoRecv(m_recving._orgdata, 2);
+		g_pios->CreateTimer(500+rand()%1000, this);
 		return true;
 	}
 	virtual bool OnConnect(bool bConnected)
@@ -198,6 +199,7 @@ public:
 			m_establish = 1;
 			OnRecv(0);
 			LOGI("establish connect");
+			g_pios->CreateTimer(1000+rand()%1000, this);
 		}
 		else
 		{
@@ -214,7 +216,7 @@ public:
 		}
 		else if (m_curSendLen == m_sending._len)
 		{
-			unsigned int senduse = zsummer::utility::GetTimeMillisecond();
+			unsigned long long senduse = zsummer::utility::GetTimeMillisecond();
 			senduse = senduse - m_sending._senddelay;
 			addDelayData(TD_SEND, senduse);
 			
@@ -252,11 +254,11 @@ public:
 		{
 		case 1:
 			{
-				unsigned int localTick = 0;
+				unsigned long long localTick = 0;
 				std::string text;
 				rs >> localTick >> text;
 				
-				unsigned int curTick = zsummer::utility::GetTimeMillisecond();
+				unsigned long long curTick = zsummer::utility::GetTimeMillisecond();
 				curTick = curTick - localTick;
 				addDelayData(TD_TOTAL, curTick);
 				
@@ -313,43 +315,42 @@ public:
 	std::string m_text;
 };
 
-class CZSummer : public zsummer::network::IIOServerCallback
+class CZSummer : public zsummer::network::IIOServerCallback , public zsummer::network::ITimerCallback
 {
 public:
 	CZSummer()
 	{
-		m_ios = NULL;
 		m_accept = NULL;
 		m_clientMax = 0;
 	}
 	~CZSummer()
 	{
-		if (m_ios)
+		if (g_pios)
 		{
-			zsummer::network::DestroyIOServer(m_ios);
-			m_ios = NULL;
+			zsummer::network::DestroyIOServer(g_pios);
+			g_pios = NULL;
 		}
-		
 	}
 	bool Run(std::string ip, unsigned short port, int clients)
 	{
 		m_ip = ip;
 		m_port = port;
 		m_clientMax = clients;
-
-		m_ios =zsummer::network::CreateIOServer();
-		if (!m_ios)
+		g_pios =zsummer::network::CreateIOServer();
+		if (!g_pios)
 		{
 			return false;
 		}
-		if (!m_ios->Initialize(this))
+		if (!g_pios->Initialize(this))
 		{
+			zsummer::network::DestroyIOServer(g_pios);
+			g_pios = NULL;
 			return false;
 		}
+		g_pios->CreateTimer(1000, this);
 		while(true)
 		{
-			
-			m_ios->RunOnce();
+			g_pios->RunOnce();
 			
 		}
 		return true;
@@ -360,8 +361,9 @@ public:
 		return true;
 	}
 	//! IIOServer's Timerr. per 1 seconds trigger. Don't spend too much time in here.
-	virtual bool OnTimer()
+	virtual void OnTimer(unsigned long long timerID)
 	{
+
 		//限定每秒200次connect
 		size_t clientCount=m_clients.size();
 		if (clientCount < m_clientMax)
@@ -372,24 +374,9 @@ public:
 			{
 				CClient * p = new CClient;
 				p->m_socket = zsummer::network::CreateTcpSocket();
-				p->m_socket->Initialize(m_ios, p);
+				p->m_socket->Initialize(g_pios, p);
 				p->m_socket->DoConnect(m_ip.c_str(), m_port);
 				m_clients.push_back(p);
-			}
-		}
-		//触发socket定时器
-		else
-		{
-			static unsigned int count = 0;
-			count++;
-			if (count%1==0)
-			{
-				unsigned int usedTime = zsummer::utility::GetTimeMillisecond();
-				for (size_t i=0; i<m_clients.size(); i++)
-				{
-					m_clients[i]->OnTimer();
-				}
-				addDelayData(TD_WHILE, zsummer::utility::GetTimeMillisecond() - usedTime);
 			}
 		}
 
@@ -415,11 +402,10 @@ public:
 			}
 			count++;
 		}
-		return true;
+		g_pios->CreateTimer(1000, this);
 	}
 	
 private:
-	zsummer::network::IIOServer * m_ios;
 	zsummer::network::ITcpAccept * m_accept;
 	std::string m_ip;
 	unsigned short m_port;
@@ -467,7 +453,7 @@ int main(int argc, char* argv[])
 		LOGI("user entry is ip=" << ip << ", port=" << port << ", count=" << count);
 	}
 
-
+	g_pios = NULL;
 	CZSummer summer;
 	summer.Run(ip, port, count);
 	

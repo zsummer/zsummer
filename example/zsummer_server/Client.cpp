@@ -106,7 +106,7 @@ void CClient::MessageEntry(zsummer::protocol4z::ReadStream & rs)
 	{
 	case 1:
 		{
-			unsigned int clientTick = 0;
+			unsigned long long clientTick = 0;
 			std::string text;
 			rs >> clientTick >> text;
 			char buf[_MSG_BUF_LEN];

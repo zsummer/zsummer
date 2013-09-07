@@ -57,6 +57,8 @@ namespace zsummer
 		virtual bool Initialize(IIOServerCallback *cb);
 		virtual void RunOnce();
 		virtual void Post(void *pUser);
+		virtual unsigned long long CreateTimer(unsigned int delayms, ITimerCallback * cb);
+		virtual bool CancelTimer(unsigned long long timerID);
 	public:
 		void PostMsg(POST_COM_KEY pck, ULONG_PTR ptr); 
 	public:
@@ -64,8 +66,13 @@ namespace zsummer
 		HANDLE m_io;
 		//! IO处理器回调指针
 		IIOServerCallback * m_cb;
-		//! 最后一次定时器触发时间
-		unsigned int	m_lasttime;
+
+		//! 定时器
+		std::map<unsigned long long, ITimerCallback*> m_queTimer;
+		unsigned int m_queSeq; //! 用于生成定时器ID
+		volatile unsigned long long m_nextExpire; //! 最快触发时间
+		zsummer::thread4z::CLock m_lockTimer; //! 锁
+		
 		
 	};
 

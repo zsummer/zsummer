@@ -67,6 +67,14 @@ namespace zsummer
 	{
 		class ITcpAccept;
 		class ITcpSocket;
+		class ITimerCallback
+		{
+		public:
+			ITimerCallback(){}
+			virtual ~ITimerCallback(){}
+			virtual void OnTimer(unsigned long long timerID) =0;
+		};
+		
 		//! IO处理器回调
 		class IIOServerCallback
 		{
@@ -75,8 +83,6 @@ namespace zsummer
 			virtual ~IIOServerCallback(){}
 			//! IIOServer.post(pUser) callback.
 			virtual bool OnPost(void *pUser) = 0;
-			//! IIOServer's Timerr. per 1 seconds trigger. Don't spend too much time in here.
-			virtual bool OnTimer() = 0;
 		};
 		//! IO处理器
 		class IIOServer
@@ -90,6 +96,9 @@ namespace zsummer
 			virtual void RunOnce() = 0;
 			//! provide Thread's message queue.
 			virtual void Post(void *pUser) = 0;
+			//! create timer
+			virtual unsigned long long CreateTimer(unsigned int delayms, ITimerCallback * cb) = 0;
+			virtual bool CancelTimer(unsigned long long timerID) = 0;
 		};
 
 
