@@ -61,6 +61,7 @@ namespace zsummer
 		virtual bool CancelTimer(unsigned long long timerID);
 	public:
 		void PostMsg(POST_COM_KEY pck, ULONG_PTR ptr); 
+		void CheckTimer();
 	public:
 		//! IOCP¾ä±ú
 		HANDLE m_io;

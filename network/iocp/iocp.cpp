@@ -128,7 +128,47 @@ bool CIOServer::CancelTimer(unsigned long long timerID)
 	}
 	return bRet;
 }
+void CIOServer::CheckTimer()
+{
+	if (!m_queTimer.empty())
+	{
+		unsigned long long nowMs = zsummer::utility::GetTimeMillisecond();
+		unsigned long long expire = m_nextExpire;
+		if (expire <= nowMs)
+		{
+			std::vector<std::pair<unsigned long long, ITimerCallback*> > allexpire;
+			{
+				CAutoLock l(m_lockTimer);
+				while(1)
+				{
+					if (m_queTimer.empty())
+					{
+						m_nextExpire = (unsigned long long)-1;
+						//LCI("m_queTimer.empty()");
+						break;
+					}
+					std::map<unsigned long long, ITimerCallback*>::iterator iter = m_queTimer.begin();
+					unsigned long long nextexpire = (iter->first)>>20;
+					if (nowMs < nextexpire)
+					{
+						m_nextExpire = nextexpire;
+						//LCI("next timerID=" << iter->first << ", next expire=" << nextexpire-cur);
+						break;
+					}
+					//LCI("timer expire, timeID=" << iter->first);
+					allexpire.push_back(*iter);
+					m_queTimer.erase(iter);
+				}
+			}
+			//LCI("allexpire size=" << allexpire.size());
+			for (std::vector<std::pair<unsigned long long, ITimerCallback*> >::iterator iter = allexpire.begin(); iter != allexpire.end(); ++iter)
+			{
+				iter->second->OnTimer(iter->first);
+			}
+		}
 
+	}
+}
 void CIOServer::PostMsg(POST_COM_KEY pck, ULONG_PTR ptr)
 {
 	PostQueuedCompletionStatus(m_io, 0, pck,(LPOVERLAPPED)(ptr));
@@ -161,45 +201,7 @@ void CIOServer::RunOnce()
 
 	//检查定时器超时状态
 	{
-		if (!m_queTimer.empty())
-		{
-			nowMs = zsummer::utility::GetTimeMillisecond();
-			unsigned long long expire = m_nextExpire;
-			if (expire <= nowMs)
-			{
-				std::vector<std::pair<unsigned long long, ITimerCallback*> > allexpire;
-				{
-					CAutoLock l(m_lockTimer);
-					while(1)
-					{
-						if (m_queTimer.empty())
-						{
-							m_nextExpire = (unsigned long long)-1;
-							//LCI("m_queTimer.empty()");
-							break;
-						}
-						std::map<unsigned long long, ITimerCallback*>::iterator iter = m_queTimer.begin();
-						unsigned long long nextexpire = (iter->first)>>20;
-						if (nowMs < nextexpire)
-						{
-							m_nextExpire = nextexpire;
-							//LCI("next timerID=" << iter->first << ", next expire=" << nextexpire-cur);
-							break;
-						}
-						//LCI("timer expire, timeID=" << iter->first);
-						allexpire.push_back(*iter);
-						m_queTimer.erase(iter);
-					}
-				}
-				//LCI("allexpire size=" << allexpire.size());
-				for (std::vector<std::pair<unsigned long long, ITimerCallback*> >::iterator iter = allexpire.begin(); iter != allexpire.end(); ++iter)
-				{
-					iter->second->OnTimer(iter->first);
-				}
-			}
-
-		}
-		
+		CheckTimer();
 		if (!bRet && !pOverlapped)
 		{
 			//TIMEOUT

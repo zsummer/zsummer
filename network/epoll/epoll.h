@@ -68,6 +68,7 @@ namespace zsummer
 
 	public:
 		void PostMsg(POST_COM_KEY pck, void * ptr); 
+		void CheckTimer();
 	public:
 		int	m_epoll;
 		IIOServerCallback	* m_cb;
