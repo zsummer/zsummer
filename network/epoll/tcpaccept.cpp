@@ -84,23 +84,23 @@ bool CTcpAccept::OpenAccept(const char * ip, unsigned short port)
 		return false;
 	}
 
-	if (m_handle._socket != 0)
+	if (m_handle._fd != 0)
 	{
-		LCF("ERR: socket is aready valid!");
+		LCF("ERR: accept fd is aready used!");
 		return false;
 	}
 
-	m_handle._socket = socket(AF_INET, SOCK_STREAM, 0);
-	if (m_handle._socket == -1)
+	m_handle._fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (m_handle._fd == -1)
 	{
 		LCF("ERR: socket create err errno =" << strerror(errno));
 		return false;
 	}
 
-	SetNonBlock(m_handle._socket);
+	SetNonBlock(m_handle._fd);
 
 	int bReuse = 1;
-	if (setsockopt(m_handle._socket, SOL_SOCKET, SO_REUSEADDR,  &bReuse, sizeof(bReuse)) != 0)
+	if (setsockopt(m_handle._fd, SOL_SOCKET, SO_REUSEADDR,  &bReuse, sizeof(bReuse)) != 0)
 	{
 		LCW("WAR: socket set reuse fail! errno=" << strerror(errno));
 	}
@@ -109,19 +109,19 @@ bool CTcpAccept::OpenAccept(const char * ip, unsigned short port)
 	m_addr.sin_family = AF_INET;
 	m_addr.sin_addr.s_addr = inet_addr(ip);
 	m_addr.sin_port = htons(port);
-	if (bind(m_handle._socket, (sockaddr *) &m_addr, sizeof(m_addr)) != 0)
+	if (bind(m_handle._fd, (sockaddr *) &m_addr, sizeof(m_addr)) != 0)
 	{
 		LCF("ERR: socket bind err, errno=" << strerror(errno));
-		close(m_handle._socket);
-		m_handle._socket = 0;
+		close(m_handle._fd);
+		m_handle._fd = 0;
 		return false;
 	}
 
-	if (listen(m_handle._socket, 200) != 0)
+	if (listen(m_handle._fd, 200) != 0)
 	{
 		LCF("ERR: socket listen err, errno=" << strerror(errno));
-		close(m_handle._socket);
-		m_handle._socket = 0;
+		close(m_handle._fd);
+		m_handle._fd = 0;
 		return false;
 	}
 
@@ -129,7 +129,7 @@ bool CTcpAccept::OpenAccept(const char * ip, unsigned short port)
 	m_handle._event.data.ptr = &m_handle;
 	m_handle._ptr = this;
 	m_handle._type = tagRegister::REG_ACCEPT;
-	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_ADD, m_handle._socket, &m_handle._event) != 0)
+	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_ADD, m_handle._fd, &m_handle._event) != 0)
 	{
 		LCF("ERR: epoll ctl  accept err!  errno=" << strerror(errno));
 		return false;
@@ -151,7 +151,7 @@ bool CTcpAccept::OnEPOLLMessage(bool bSuccess)
 		sockaddr_in cltaddr;
 		memset(&cltaddr, 0, sizeof(cltaddr));
 		socklen_t len = sizeof(cltaddr);
-		int s = accept(m_handle._socket, (sockaddr *)&cltaddr, &len);
+		int s = accept(m_handle._fd, (sockaddr *)&cltaddr, &len);
 		if (s == -1)
 		{
 			if (errno != EAGAIN && errno != EWOULDBLOCK)
@@ -167,10 +167,10 @@ bool CTcpAccept::OnEPOLLMessage(bool bSuccess)
 		SetNoDelay(s);
 	
 		CTcpSocket * ps = (CTcpSocket *)CreateTcpSocket();
-		ps->m_handle._socket = s;
+		ps->m_handle._fd = s;
 		ps->m_handle._event.data.ptr = & ps->m_handle;
 		ps->m_handle._ptr = ps;
-		ps->m_handle._type = tagRegister::REG_RECV;
+		ps->m_handle._type = tagRegister::REG_ESTABLISHED;
 		ps->m_bNeedDestroy = true;
 		memcpy(&ps->m_addr, &cltaddr, sizeof(ps->m_addr));
 		m_cb->OnAccept(ps);
@@ -180,12 +180,12 @@ bool CTcpAccept::OnEPOLLMessage(bool bSuccess)
 
 bool CTcpAccept::Close()
 {
-	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_DEL, m_handle._socket, &m_handle._event) != 0)
+	if (epoll_ctl(((CIOServer *)m_ios)->m_epoll, EPOLL_CTL_DEL, m_handle._fd, &m_handle._event) != 0)
 	{
 		LCE("ERR: epoll ctl  DEL err!  errno=" << strerror(errno));
 	}
-	shutdown(m_handle._socket, SHUT_RDWR);
-	close(m_handle._socket);
+	shutdown(m_handle._fd, SHUT_RDWR);
+	close(m_handle._fd);
 	((CIOServer*)m_ios)->PostMsg(PCK_ACCEPT_CLOSE, this);
 	return true;
 }

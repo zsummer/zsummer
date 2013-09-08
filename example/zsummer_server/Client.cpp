@@ -57,7 +57,7 @@ void CClient::InitSocket(CProcess *proc, ITcpSocket *s)
 {
 	m_process = proc;
 	m_socket = s;
-	m_socket->DoRecv(m_recving._body, 2);
+	m_socket->DoRecv(m_recving._orgdata, 2);
 }
 
 bool CClient::OnRecv(unsigned int nRecvedLen)
@@ -66,7 +66,7 @@ bool CClient::OnRecv(unsigned int nRecvedLen)
 	m_process->AddTotalRecvCount(1);
 	m_process->AddTotalRecvLen(nRecvedLen);
 
-	int needRecv = zsummer::protocol4z::CheckBuffIntegrity(m_recving._body, m_curRecvLen, _MSG_BUF_LEN);
+	int needRecv = zsummer::protocol4z::CheckBuffIntegrity(m_recving._orgdata, m_curRecvLen, _MSG_BUF_LEN);
 	if ( needRecv == -1)
 	{
 		LOGE("killed socket: CheckBuffIntegrity error ");
@@ -75,12 +75,12 @@ bool CClient::OnRecv(unsigned int nRecvedLen)
 	}
 	if (needRecv > 0)
 	{
-		m_socket->DoRecv(m_recving._body+m_curRecvLen, needRecv);
+		m_socket->DoRecv(m_recving._orgdata+m_curRecvLen, needRecv);
 		return true;
 	}
 
 	//! 解包完成 进行消息处理
-	zsummer::protocol4z::ReadStream rs(m_recving._body, m_curRecvLen);
+	zsummer::protocol4z::ReadStream rs(m_recving._orgdata, m_curRecvLen);
 	try
 	{
 		MessageEntry(rs);
@@ -92,9 +92,9 @@ bool CClient::OnRecv(unsigned int nRecvedLen)
 		return false;
 	}
 	//! 继续收包
-	memset(&m_recving, 0, sizeof(m_recving));
+	m_recving._len = 0;
 	m_curRecvLen = 0;
-	m_socket->DoRecv(m_recving._body, 2);
+	m_socket->DoRecv(m_recving._orgdata, 2);
 	return true;
 }
 void CClient::MessageEntry(zsummer::protocol4z::ReadStream & rs)
@@ -106,12 +106,12 @@ void CClient::MessageEntry(zsummer::protocol4z::ReadStream & rs)
 	{
 	case 1:
 		{
-			unsigned int clientTick = 0;
-			unsigned long long serverTime = time(NULL);
-			rs >> clientTick;
-			char buf[500];
-			zsummer::protocol4z::WriteStream ws(buf, 500);
-			ws << protocolID << clientTick << serverTime;
+			unsigned long long clientTick = 0;
+			std::string text;
+			rs >> clientTick >> text;
+			char buf[_MSG_BUF_LEN];
+			zsummer::protocol4z::WriteStream ws(buf, _MSG_BUF_LEN);
+			ws << protocolID << clientTick << text;
 			Send(buf, ws.GetWriteLen());
 		}
 		break;
@@ -127,15 +127,15 @@ void CClient::Send(char * buf, unsigned int len)
 	if (m_sending._len != 0)
 	{
 		Packet *p = new Packet;
-		memcpy(p->_body, buf, len);
+		memcpy(p->_orgdata, buf, len);
 		p->_len = len;
 		m_sendque.push(p);
 	}
 	else
 	{
-		memcpy(m_sending._body, buf, len);
+		memcpy(m_sending._orgdata, buf, len);
 		m_sending._len= len;
-		m_socket->DoSend(m_sending._body, m_sending._len);
+		m_socket->DoSend(m_sending._orgdata, m_sending._len);
 	}
 }
 
@@ -151,7 +151,7 @@ bool CClient::OnSend(unsigned int nSentLen)
 	m_curSendLen += nSentLen;
 	if (m_curSendLen < m_sending._len)
 	{
-		m_socket->DoSend(&m_sending._body[m_curSendLen], m_sending._len - m_curSendLen);
+		m_socket->DoSend(&m_sending._orgdata[m_curSendLen], m_sending._len - m_curSendLen);
 	}
 	else if (m_curSendLen == m_sending._len)
 	{
@@ -164,9 +164,9 @@ bool CClient::OnSend(unsigned int nSentLen)
 		{
 			Packet *p = m_sendque.front();
 			m_sendque.pop();
-			memcpy((char*)&m_sending, p, sizeof(m_sending));
+			memcpy(m_sending._orgdata, p->_orgdata, p->_len);
 			delete p;
-			m_socket->DoSend(m_sending._body, p->_len);
+			m_socket->DoSend(m_sending._orgdata, m_sending._len);
 		}
 	}
 	return true;

@@ -27,13 +27,41 @@ using namespace std;
 void TestUtilityTime()
 {
 	{
-		unsigned int uCurMillisecond = zsummer::utility::GetTimeMillisecond();
-		unsigned long long uCurMicrosecond = zsummer::utility::GetTimeMicrosecond();
-		PUTN("sleep 1251ms\n");
+		PUTN("sleep 1251ms");
+		unsigned long long uBeginMillisecond = zsummer::utility::GetTimeMillisecond();
+		unsigned long long uBeginMicrosecond = zsummer::utility::GetTimeMicrosecond();
+		unsigned long long  uBeginTickMillisecond = zsummer::utility::GetTickMillisecond();
+		unsigned long long  uBeginTickMicrosecond = zsummer::utility::GetTickMicrosecond();
 		zsummer::utility::SleepMillisecond(1251);
-		uCurMillisecond = zsummer::utility::GetTimeMillisecond() - uCurMillisecond;
-		uCurMicrosecond = zsummer::utility::GetTimeMicrosecond() - uCurMicrosecond;
-		PUTN("now sleep times : "<< uCurMillisecond <<" ms " <<(unsigned long) uCurMicrosecond << " us ");
+		unsigned long long uEndMillisecond = zsummer::utility::GetTimeMillisecond();
+		unsigned long long uEndMicrosecond = zsummer::utility::GetTimeMicrosecond();
+		unsigned long long  uEndTickMillisecond = zsummer::utility::GetTickMillisecond();
+		unsigned long long  uEndTickMicrosecond = zsummer::utility::GetTickMicrosecond();
+		PUTN("need sleep times is 1251, now sleep="<< uEndMillisecond - uBeginMillisecond <<"ms, " <<uEndMicrosecond - uBeginMicrosecond << "us.");
+		PUTN("need sleep ticks is 1251, now sleep="<< uEndTickMillisecond - uBeginTickMillisecond <<"ms, " <<uEndTickMicrosecond - uBeginTickMicrosecond << "us.");
+
+		PUTN("uBeginMillisecond=" <<uBeginMillisecond);
+		PUTN("uEndMillisecond=" <<uEndMillisecond);
+		PUTN("uBeginMicrosecond=" <<uBeginMicrosecond);
+		PUTN("uEndMicrosecond=" <<uEndMicrosecond);
+		PUTN("uBeginTickMillisecond=" <<uBeginTickMillisecond);
+		PUTN("uEndTickMillisecond=" <<uEndTickMillisecond);
+		PUTN("uBeginTickMicrosecond=" <<uBeginTickMicrosecond);
+		PUTN("uEndTickMicrosecond=" <<uEndTickMicrosecond);
+
+
+		unsigned long long  now = zsummer::utility::GetTickMillisecond();
+		for (int i=0; i<1000000; i++)
+		{
+			uEndTickMicrosecond = zsummer::utility::GetTickMillisecond();
+		}
+		PUTN("100Íò GetTickMillisecond use time=" << zsummer::utility::GetTickMillisecond() - now << "ms");
+		now = zsummer::utility::GetTimeMillisecond();
+		for (int i=0; i<1000000; i++)
+		{
+			uEndTickMicrosecond = zsummer::utility::GetTimeMillisecond();
+		}
+		PUTN("100Íò GetTimeMillisecond use time=" << zsummer::utility::GetTimeMillisecond() - now<< "ms");
 	}
 
 	{
@@ -70,8 +98,8 @@ void TestObjectPool()
 	PUTN(" CObject2 size: " << sizeof(CObject2));
 
 	unsigned long max=10*10000;
-	unsigned long old;
-	unsigned long now;
+	unsigned long long old;
+	unsigned long long now;
 
 	old = zsummer::utility::GetTimeMillisecond();
 	for (unsigned int i=0; i<max; i++)

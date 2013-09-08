@@ -1,12 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zsummer", "zsummer.vcxproj", "{26E62078-C961-4984-BBA0-7B47CB73FB86}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FFA743E7-7E80-4BBA-A15E-D752E4E7EAF9}"
 	ProjectSection(SolutionItems) = preProject
 		Performance1.psess = Performance1.psess
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zsummer_client", "zsummer_client\vc10\zsummer_client.vcxproj", "{26E62078-C961-4984-BBA0-7B47CB73FB86}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zsummer_server", "zsummer_server\vc10\zsummer_server.vcxproj", "{10084440-7D47-4DE9-877D-31A753DBE06B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +26,14 @@ Global
 		{26E62078-C961-4984-BBA0-7B47CB73FB86}.Release|Win32.Build.0 = Release|Win32
 		{26E62078-C961-4984-BBA0-7B47CB73FB86}.Release|x64.ActiveCfg = Release|x64
 		{26E62078-C961-4984-BBA0-7B47CB73FB86}.Release|x64.Build.0 = Release|x64
+		{10084440-7D47-4DE9-877D-31A753DBE06B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{10084440-7D47-4DE9-877D-31A753DBE06B}.Debug|Win32.Build.0 = Debug|Win32
+		{10084440-7D47-4DE9-877D-31A753DBE06B}.Debug|x64.ActiveCfg = Debug|x64
+		{10084440-7D47-4DE9-877D-31A753DBE06B}.Debug|x64.Build.0 = Debug|x64
+		{10084440-7D47-4DE9-877D-31A753DBE06B}.Release|Win32.ActiveCfg = Release|Win32
+		{10084440-7D47-4DE9-877D-31A753DBE06B}.Release|Win32.Build.0 = Release|Win32
+		{10084440-7D47-4DE9-877D-31A753DBE06B}.Release|x64.ActiveCfg = Release|x64
+		{10084440-7D47-4DE9-877D-31A753DBE06B}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

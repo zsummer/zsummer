@@ -473,6 +473,7 @@ struct LogData
 	LoggerId _id;		//dest logger id
 	int	_level;	//log level
 	time_t _time;		//create time
+	unsigned int _precise;
 	char _content[LOG4Z_LOG_BUF_SIZE]; //content
 };
 
@@ -483,10 +484,11 @@ struct LoggerInfo
 	std::string _path;
 	int  _level; //filter level
 	bool _display; //display to screen 
-	bool _enable; //
-	time_t _filetime;
+	bool _monthdir; //create directory per month 
+	bool _enable; //owner logger is enable 
+	time_t _timeFileCreate;//file create time
 	CLog4zFile	_handle; //file handle.
-	LoggerInfo(){ _path = "./log/", _level = LOG_LEVEL_DEBUG; _display = true; _enable = false; _filetime=0;}
+	LoggerInfo(){ _path = "./log/", _level = LOG_LEVEL_DEBUG; _display = true; _enable = false; _monthdir=false; _timeFileCreate=0;}
 };
 
 
@@ -569,22 +571,31 @@ public:
 			it = iter->second.find("display");
 			if (it != iter->second.end())
 			{
-				if (it->second == "true" || it->second == "1")
+				if (it->second == "false" || it->second == "0")
 				{
-					l._display = true;
+					l._display = false;
 				}
 			}
-			CreateLogger(l._name, l._path, l._level, l._display);
+			//! monthdir
+			it = iter->second.find("monthdir");
+			if (it != iter->second.end())
+			{
+				if (it->second != "false" && it->second != "0")
+				{
+					l._monthdir = true;
+				}
+			}
+			CreateLogger(l._name, l._path, l._level, l._display, l._monthdir);
 		}
 		return true;
 	}
 
 	//! ¸²Ð´Ê½´´½¨
-	virtual LoggerId CreateLogger(std::string name,std::string path,int nLevel,bool display)
+	virtual LoggerId CreateLogger(std::string name,std::string path,int nLevel,bool display, bool monthdir)
 	{
-		std::string _name;
+		std::string _tmp;
 		std::string _pid;
-		GetProcessInfo(_name, _pid);
+		GetProcessInfo(_tmp, _pid);
 		if (name.length() == 0)
 		{
 			ShowColorText("log4z: create logger error, name is empty ! \r\n", LOG_LEVEL_FATAL);
@@ -625,12 +636,17 @@ public:
 		m_loggers[newID]._level = nLevel;
 		m_loggers[newID]._enable = true;
 		m_loggers[newID]._display = display;
+		m_loggers[newID]._monthdir = monthdir;
 		return newID;
 	}
 
 
 	bool Start()
 	{
+		if (m_bRuning)
+		{
+			return false;
+		}
 		m_semaphore.Create(0);
 		bool ret = CThread::Start();
 		return ret && m_semaphore.Wait(3000);
@@ -664,7 +680,26 @@ public:
 		LogData * pLog = new LogData;
 		pLog->_id =id;
 		pLog->_level = level;
-		pLog->_time = time(NULL);
+		
+		{
+#ifdef WIN32
+			FILETIME ft;
+			GetSystemTimeAsFileTime(&ft);
+			unsigned long long now = ft.dwHighDateTime;
+			now <<= 32;
+			now |= ft.dwLowDateTime;
+			now /=10;
+			now -=11644473600000000Ui64;
+			now /=1000;
+			pLog->_time = now/1000;
+			pLog->_precise = (unsigned int)(now%1000);
+#else
+			struct timeval tm;
+			gettimeofday(&tm, NULL);
+			pLog->_time = tm.tv_sec;
+			pLog->_precise = tm.tv_usec/1000;
+#endif
+		}
 		int len = (int) strlen(log);
 		if (len >= LOG4Z_LOG_BUF_SIZE)
 		{
@@ -747,16 +782,23 @@ protected:
 		}
 
 		tm t;
-		TimeToTm(pLogger->_filetime, &t);
-		char buf[100];
-		sprintf(buf, "%04d_%02d", t.tm_year+1900, t.tm_mon+1);
-		std::string path = pLogger->_path + buf + "/";
+		TimeToTm(pLogger->_timeFileCreate, &t);
+		std::string path = pLogger->_path;
+		char buf[100]={0};
+		if (pLogger->_monthdir)
+		{
+			sprintf(buf, "%04d_%02d/", t.tm_year+1900, t.tm_mon+1);
+			path += buf;
+		}
+
 		if (!IsDirectory(path))
 		{
 			CreateRecursionDir(path);
 		}
 
-		sprintf(buf, "%s_%04d_%02d_%02d_%s.log", pLogger->_name.c_str(),  t.tm_year+1900, t.tm_mon+1, t.tm_mday, pLogger->_pid.c_str());
+		sprintf(buf, "%s_%04d%02d%02d_%02d%02d_%s.log", 
+			pLogger->_name.c_str(),  t.tm_year+1900, t.tm_mon+1, t.tm_mday, 
+			t.tm_hour, t.tm_min, pLogger->_pid.c_str());
 		path += buf;
 		pLogger->_handle.Open(path.c_str(), "ab");
 		return pLogger->_handle.IsOpen();
@@ -812,9 +854,9 @@ protected:
 
 				//update file
 				if (!m_loggers[pLog->_id]._handle.IsOpen() 
-					|| !IsSameDay(pLog->_time, m_loggers[pLog->_id]._filetime))
+					|| !IsSameDay(pLog->_time, m_loggers[pLog->_id]._timeFileCreate))
 				{
-					m_loggers[pLog->_id]._filetime = pLog->_time;
+					m_loggers[pLog->_id]._timeFileCreate = pLog->_time;
 					if (!OpenLogger(pLog->_id))
 					{
 						m_loggers[pLog->_id]._enable = false;
@@ -831,11 +873,12 @@ protected:
 				{
 					memset(&tt, 0, sizeof(tt));
 				}
-				sprintf(pWriteBuf, "%d-%02d-%02d %02d:%02d:%02d %s %s \r\n", 
-					tt.tm_year+1900, tt.tm_mon+1, tt.tm_mday, tt.tm_hour, tt.tm_min, tt.tm_sec,
+				sprintf(pWriteBuf, "%d-%02d-%02d %02d:%02d:%02d.%03d %s %s \r\n", 
+					tt.tm_year+1900, tt.tm_mon+1, tt.tm_mday, tt.tm_hour, tt.tm_min, tt.tm_sec, pLog->_precise,
 					LOG_STRING[pLog->_level], pLog->_content);
 
-				m_loggers[pLog->_id]._handle.Write(pWriteBuf, strlen(pWriteBuf));
+				size_t writeLen = strlen(pWriteBuf);
+				m_loggers[pLog->_id]._handle.Write(pWriteBuf, writeLen);
 				if (m_loggers[pLog->_id]._display)
 				{
 					ShowColorText(pWriteBuf, pLog->_level);
@@ -844,7 +887,7 @@ protected:
 				needFlush[pLog->_id] ++;
 
 				m_ullStatusTotalWriteCount++;
-				m_ullStatusTotalWriteBytes+=strlen(pWriteBuf);
+				m_ullStatusTotalWriteBytes+=writeLen;
 				delete pLog;
 				pLog = NULL;
 			}

@@ -64,24 +64,24 @@ namespace zsummer
 {
 	struct tagRegister
 	{
-		epoll_event   _event;
-		unsigned char _type;
-		int			  _socket;
-		void *		  _ptr;
-		enum
+		epoll_event   _event;//event
+		unsigned char _type;//register type
+		int			  _fd; //file descriptor
+		void *		  _ptr; //user pointer
+		enum REGISTER_TYPE
 		{
-			REG_ACCEPT, 
-			REG_RECV, 
-			REG_SEND,
-			REG_CONNECT, 
-			REG_THREAD, 
+			REG_ACCEPT, // listen
+			REG_ESTABLISHED, //socket write & read
+			REG_CONNECT, // connect
+			REG_THREAD, // user message router
+			REG_INVALIDE,
 		};
 	};
 
 
 	enum POST_COM_KEY
 	{
-		PCK_ACCEPT_CLOSE = 1,
+		PCK_ACCEPT_CLOSE = 1, // user thread message type
 		PCK_SOCKET_CLOSE,
 		PCK_USER_DATA,
 	};
@@ -100,6 +100,15 @@ namespace zsummer
 	{
 		int bTrue = true?1:0;
 		return setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char*)&bTrue, sizeof(bTrue)) == 0;
+	}
+	inline bool EPOLLMod(int epfd, int fd,  struct epoll_event *event)
+	{
+		if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, event) != 0)
+		{
+			epoll_ctl(epfd, EPOLL_CTL_DEL, fd, event);
+			return false;
+		}
+		return true;
 	}
 }
 

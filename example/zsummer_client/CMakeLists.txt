@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-project(zsummer_server)
+project(zsummer_client)
 
 aux_source_directory(../../utility UT_S)
 aux_source_directory(../../depends/thread4z TH_S)
@@ -13,6 +13,6 @@ link_libraries( rt pthread)
 add_definitions( -g -ggdb -Wall -O0)
 
 set(EXECUTABLE_OUTPUT_PATH "../bin/")
-add_executable(zsummer_server ${source})
+add_executable(zsummer_client ${source})
 
 

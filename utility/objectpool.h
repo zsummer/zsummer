@@ -90,7 +90,7 @@ i3-350M, 5gDRRIII, g++4.4.4  1000000
 			m_pHead = new char[8+sizeof(T)];
 			m_pTail = new char[8+sizeof(T)];
 			*((unsigned long long *)m_pHead) = (unsigned long long)m_pTail;
-			*((unsigned long long *)m_pTail) = NULL;
+			*((unsigned long long *)m_pTail) = 0;
 			
 			m_nUseSize = 0;
 			m_nFreSize = 0;
@@ -105,7 +105,7 @@ i3-350M, 5gDRRIII, g++4.4.4  1000000
 				m_nTotSize++;
 			}
 
-			*(unsigned long long *)p = NULL;
+			*(unsigned long long *)p = 0;
 			*(unsigned long long *)m_pTail = (unsigned long long)p;
 			m_pTail = p;
 			m_nFreSize++;

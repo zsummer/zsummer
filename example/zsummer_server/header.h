@@ -65,7 +65,7 @@ using namespace zsummer::network;
 struct Packet
 {
 	unsigned short _len;
-	char		   _body[_MSG_BUF_LEN];
+	char		   _orgdata[_MSG_BUF_LEN];
 };
 
 

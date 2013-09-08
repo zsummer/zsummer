@@ -238,7 +238,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy E:\dev2012\trunk\utility\Release\utility.lib E:\dev2012\trunk\public\libs\utility_r.lib&#x0D;&#x0A;"
+				CommandLine=""
 			/>
 		</Configuration>
 		<Configuration
@@ -328,10 +328,6 @@
 			>
 			<File
 				RelativePath=".\main.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\utility.cpp"
 				>
 			</File>
 		</Filter>

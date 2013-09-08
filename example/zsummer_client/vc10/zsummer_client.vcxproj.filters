@@ -36,20 +36,8 @@
     <ClInclude Include="..\..\..\network\iocp\tcpsocket.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\Client.h">
-      <Filter>main</Filter>
-    </ClInclude>
-    <ClInclude Include="..\header.h">
-      <Filter>main</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Schedule.h">
-      <Filter>main</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\utility\utility.h">
       <Filter>utility</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Process.h">
-      <Filter>main</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\depends\log4z\log4z.h">
       <Filter>log</Filter>
@@ -74,19 +62,7 @@
     <ClCompile Include="..\..\..\network\iocp\tcpsocket.cpp">
       <Filter>core</Filter>
     </ClCompile>
-    <ClCompile Include="..\Client.cpp">
-      <Filter>main</Filter>
-    </ClCompile>
     <ClCompile Include="..\main.cpp">
-      <Filter>main</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Schedule.cpp">
-      <Filter>main</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\utility\utility.cpp">
-      <Filter>utility</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Process.cpp">
       <Filter>main</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\depends\log4z\log4z.cpp">

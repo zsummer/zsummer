@@ -291,6 +291,13 @@ bool CTcpSocket::OnIOCPMessage(BOOL bSuccess, DWORD dwTranceCount, unsigned char
 		if (bSuccess)
 		{
 			m_nLinkStatus = LS_ESTABLISHED;
+			{
+				BOOL bTrue = TRUE;
+				if (setsockopt(m_socket,IPPROTO_TCP, TCP_NODELAY, (char*)&bTrue, sizeof(bTrue)) != 0)
+				{
+					LCW("setsockopt TCP_NODELAY fail!  last err=" << WSAGetLastError() );
+				}
+			}
 		}
 		else
 		{

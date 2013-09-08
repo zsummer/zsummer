@@ -11,8 +11,8 @@ fast_test
 CMakeFiles
 *.cmake
 CMakeCache.txt
+MakeFile
 .metadata
-bin/
 tmp/
 *.tmp
 *.bak
@@ -147,7 +147,6 @@ dist
 build
 eggs
 parts
-bin
 var
 sdist
 develop-eggs

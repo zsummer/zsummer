@@ -209,8 +209,8 @@ public:
 	inline WriteStream & operator << (const unsigned short data) { return WriteSimpleData(data);}
 	inline WriteStream & operator << (const int data) { return WriteSimpleData(data);}
 	inline WriteStream & operator << (const unsigned int data) { return WriteSimpleData(data);}
-	inline WriteStream & operator << (const long data) { return WriteSimpleData(data);}
-	inline WriteStream & operator << (const unsigned long data) { return WriteSimpleData(data);}
+// 	inline WriteStream & operator << (const long data) { return WriteSimpleData(data);}
+// 	inline WriteStream & operator << (const unsigned long data) { return WriteSimpleData(data);}
 	inline WriteStream & operator << (const long long data) { return WriteSimpleData(data);}
 	inline WriteStream & operator << (const unsigned long long data) { return WriteSimpleData(data);}
 	inline WriteStream & operator << (const float data) { return WriteSimpleData(data);}
@@ -269,7 +269,9 @@ inline int CheckBuffIntegrity(const char * buff, unsigned short curBuffLen, unsi
 	unsigned short packLen = 0;
 	if (!reversalEndianType)
 	{
-		packLen = (unsigned short)*buff;
+		char * p = (char *)&packLen;
+		*p++ = buff[0];
+		*p = buff[1];
 	}
 	else
 	{
@@ -414,8 +416,8 @@ public:
 	inline ReadStream & operator >> (unsigned short & data) { return ReadSimpleData(data);}
 	inline ReadStream & operator >> (int & data) { return ReadSimpleData(data);}
 	inline ReadStream & operator >> (unsigned int & data) { return ReadSimpleData(data);}
-	inline ReadStream & operator >> (long & data) { return ReadSimpleData(data);}
-	inline ReadStream & operator >> (unsigned long & data) { return ReadSimpleData(data);}
+// 	inline ReadStream & operator >> (long & data) { return ReadSimpleData(data);}
+// 	inline ReadStream & operator >> (unsigned long & data) { return ReadSimpleData(data);}
 	inline ReadStream & operator >> (long long & data) { return ReadSimpleData(data);}
 	inline ReadStream & operator >> (unsigned long long & data) { return ReadSimpleData(data);}
 	inline ReadStream & operator >> (float & data) { return ReadSimpleData(data);}
