@@ -37,24 +37,17 @@ LINUX, for virtual machine performance data than windows almost: 40K concurrent 
 详细见报告页:[stress-report](https://github.com/zsummer/zsummer/wiki/stress-report)   
 For details see the report page: [stress-report] ( https://github.com/zsummer/zsummer/wiki/stress-report )
 
-# build server test  
+
+# build server & client  
 in linux:   
-cd test/zsummer_server  
+cd zsummer/example  
 cmake .  
 make  
 
 in windows:  
-cd test/zsummer_server/vc8  
-or  
-cd test/zsummer_server/vc10  
+cd zsummer/example  
+use vs2010 open  zsummer.sln  
 
-use vs2005 or vs2010 open  zsummer.sln  
-
-# build stress client test  
-cd test/asio_client  
-
-use vs2010 open asio_client.sln  
-It need the boost asio support   
 
 # auther: 张亚伟 YaweiZhang   
 Web Site: www.zsummer.net  
