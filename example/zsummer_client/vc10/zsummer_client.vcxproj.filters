@@ -48,6 +48,9 @@
     <ClInclude Include="..\..\..\depends\protocol4z\protocol4z.h">
       <Filter>protocol</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\network\iocp\udpsocket.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\network\iocp\iocp.cpp">
@@ -70,6 +73,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\depends\thread4z\thread.cpp">
       <Filter>thread</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\network\iocp\udpsocket.cpp">
+      <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

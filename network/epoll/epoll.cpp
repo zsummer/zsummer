@@ -37,6 +37,7 @@
 #include "epoll.h"
 #include "tcpaccept.h"
 #include "tcpsocket.h"
+#include "udpsocket.h"
 using namespace zsummer;
 
 zsummer::network::IIOServer * zsummer::network::CreateIOServer()
@@ -280,18 +281,21 @@ void CIOServer::RunOnce()
 				pKey->OnEPOLLMessage(false);
 			}
 		}
-		else
+		else if (pReg->_type == tagRegister::REG_ESTABLISHED || pReg->_type == tagRegister::REG_CONNECT)
 		{
-			if    (pReg->_type != tagRegister::REG_ESTABLISHED 
-				&& pReg->_type != tagRegister::REG_CONNECT)
-			{
-				LCE("check register event type failed !!  type=" << pReg->_type);
-				continue;
-			}
-
 			CTcpSocket *pKey = (CTcpSocket *) pReg->_ptr;
 			pKey->OnEPOLLMessage(pReg->_type, eventflag);
 		}
+		else if (pReg->_type == tagRegister::REG_RECVFROM)
+		{
+			CUdpSocket *pKey = (CUdpSocket *) pReg->_ptr;
+			pKey->OnEPOLLMessage(pReg->_type, eventflag);
+		}
+		else
+		{
+			LCE("check register event type failed !!  type=" << pReg->_type);
+		}
+			
 	}
 }
 

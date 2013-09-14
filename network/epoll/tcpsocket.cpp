@@ -284,7 +284,7 @@ bool CTcpSocket::OnEPOLLMessage(int type, int flag)
 	{
 		if (m_pRecvBuf == NULL || m_iRecvLen == 0)
 		{
-			LCE("CTcpSocket::OnEPOLLMessage()" << this << " recv error. epfd="<<((CIOServer *)m_ios)->m_epoll << ", handle fd=" << m_handle._fd << ", m_pSendBuf=" <<(void*)m_pSendBuf << ", m_iSendLen=" << m_iSendLen);
+			LCE("CTcpSocket::OnEPOLLMessage()" << this << " recv error. epfd="<<((CIOServer *)m_ios)->m_epoll << ", handle fd=" << m_handle._fd << ", m_pRecvBuf=" <<(void*)m_pRecvBuf << ", m_iRecvLen=" << m_iRecvLen);
 		}
 		else
 		{

@@ -144,6 +144,24 @@ namespace zsummer
 			virtual bool OpenAccept(const char * ip, unsigned short port) = 0;
 		};
 
+		class IUdpSocketCallback
+		{
+		public:
+			IUdpSocketCallback(){}
+			virtual ~IUdpSocketCallback(){}
+			virtual bool OnRecvFrom(unsigned int nRecvlen, const char *ip, unsigned short port) = 0;
+//			virtual bool OnSendTo(unsigned int nSendlen) = 0;
+		};
+
+		class IUdpSocket
+		{
+		public:
+			IUdpSocket(){}
+			virtual ~IUdpSocket(){}
+			virtual bool Initialize(IIOServer * ios, IUdpSocketCallback * cb, const char *ip, unsigned short port = 0) = 0;
+			virtual bool DoRecv(char * buf, unsigned int len) = 0;
+			virtual bool DoSend(char * buf, unsigned int len, const char *dstip, unsigned short dstport) = 0;
+		};
 
 		IIOServer * CreateIOServer();
 		void DestroyIOServer(IIOServer * ios);
@@ -153,6 +171,10 @@ namespace zsummer
 
 		ITcpAccept * CreateTcpAccept();
 		void DestroyTcpAccept(ITcpAccept *s);
+
+		IUdpSocket * CreateUdpSocket();
+		void DestroyUdpSocket(IUdpSocket * s);
+
 	};
 };
 

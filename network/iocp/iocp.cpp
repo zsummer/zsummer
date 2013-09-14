@@ -37,6 +37,7 @@
 #include "iocp.h"
 #include "tcpaccept.h"
 #include "tcpsocket.h"
+#include "udpsocket.h"
 using namespace zsummer;
 
 
@@ -243,6 +244,13 @@ void CIOServer::RunOnce()
 	case tagReqHandle::HANDLE_CONNECT:
 		{
 			CTcpSocket *pKey = (CTcpSocket *) uComKey;
+			pKey->OnIOCPMessage(bRet, dwTranceCount, type);
+		}
+		break;
+	case tagReqHandle::HANDLE_SENDTO:
+	case tagReqHandle::HANDLE_RECVFROM:
+		{
+			CUdpSocket * pKey = (CUdpSocket*) uComKey;
 			pKey->OnIOCPMessage(bRet, dwTranceCount, type);
 		}
 		break;

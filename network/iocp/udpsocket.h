@@ -33,75 +33,48 @@
 * 
 * (end of COPYRIGHT)
 */
-#pragma once
+#ifndef _ZSUMMER_UDPSOCKET_H_
+#define _ZSUMMER_UDPSOCKET_H_
 
-#ifndef _ZSUMMER_PUBLIC_H_
-#define _ZSUMMER_PUBLIC_H_
-#define _WIN32_WINNT 0x501
+#include "public.h"
 
-#include "../../utility/utility.h"
-#include "../../depends/thread4z/thread.h"
-#include "../../depends/log4z/log4z.h"
-#include "../../network/SocketInterface.h"
-#include <assert.h>
-#include <string>
-#include <iostream>
-#include <map>
-#include <list>
-#include <queue>
-#include <Mswsock.h>
-#include <WinSock2.h>
-#include <Windows.h>
 
 namespace zsummer
 {
-	struct tagReqHandle 
-	{
-		OVERLAPPED	 _overlapped;
-		unsigned char _type;
-		enum
-		{
-			HANDLE_ACCEPT, 
-			HANDLE_RECV, 
-			HANDLE_SEND,
-			HANDLE_CONNECT, 
-			HANDLE_RECVFROM,
-			HANDLE_SENDTO,
-		};
-	};
-
-	enum LINK_STATUS
-	{
-		LS_UNINITIALIZE,
-		LS_ESTABLISHED,
-		LS_WAITCLOSE,
-		LS_WAITCLEAR,
-	};
-
-	enum POST_COM_KEY
-	{
-		PCK_ACCEPT_CLOSE = 1,
-		PCK_SOCKET_CLOSE,
-		PCK_USER_DATA,
-	};
-
-	class CInitWSASocketEnv
+	using namespace zsummer::network;
+	class CUdpSocket :public IUdpSocket
 	{
 	public:
-		CInitWSASocketEnv();
-		~CInitWSASocketEnv();
+		CUdpSocket();
+		virtual ~CUdpSocket();
+		virtual bool Initialize(IIOServer * ios, IUdpSocketCallback * cb, const char *ip, unsigned short port);
+		virtual bool DoRecv(char * buf, unsigned int len);
+		virtual bool DoSend(char * buf, unsigned int len, const char *dstip, unsigned short dstport);
+		virtual bool OnIOCPMessage(BOOL bSuccess, DWORD dwTranceCount, unsigned char cType);
+	public:
+		//private
+		IIOServer * m_ios;
+		IUdpSocketCallback * m_cb;
+		SOCKET		m_socket;
+		SOCKADDR_IN	m_addr;
+
+		//recv
+		tagReqHandle m_recvHandle;
+		WSABUF		 m_recvWSABuf;
+		sockaddr_in  m_recvFrom;
+		int			 m_recvFromLen;
+
+		//send
+		tagReqHandle m_sendHandle;
+		WSABUF		 m_sendWSABuf;
+
+		LINK_STATUS m_nLinkStatus;
 	};
 }
-extern LoggerId g_coreID;
-extern zsummer::CInitWSASocketEnv appInitSocket;
 
 
-#define LCD( log ) LOG_DEBUG( g_coreID, log )
-#define LCI( log ) LOG_INFO( g_coreID, log )
-#define LCW( log ) LOG_WARN( g_coreID, log )
-#define LCE( log ) LOG_ERROR( g_coreID, log )
-#define LCA( log ) LOG_ALARM( g_coreID, log )
-#define LCF( log ) LOG_FATAL( g_coreID, log )
+
+
 
 
 

@@ -33,75 +33,41 @@
 * 
 * (end of COPYRIGHT)
 */
-#pragma once
 
-#ifndef _ZSUMMER_PUBLIC_H_
-#define _ZSUMMER_PUBLIC_H_
-#define _WIN32_WINNT 0x501
+#ifndef _ZSUMMER_UDPSOCKET_H_
+#define _ZSUMMER_UDPSOCKET_H_
 
-#include "../../utility/utility.h"
-#include "../../depends/thread4z/thread.h"
-#include "../../depends/log4z/log4z.h"
-#include "../../network/SocketInterface.h"
-#include <assert.h>
-#include <string>
-#include <iostream>
-#include <map>
-#include <list>
-#include <queue>
-#include <Mswsock.h>
-#include <WinSock2.h>
-#include <Windows.h>
+
+
+#include "public.h"
+#include "epoll.h"
 
 namespace zsummer
 {
-	struct tagReqHandle 
-	{
-		OVERLAPPED	 _overlapped;
-		unsigned char _type;
-		enum
-		{
-			HANDLE_ACCEPT, 
-			HANDLE_RECV, 
-			HANDLE_SEND,
-			HANDLE_CONNECT, 
-			HANDLE_RECVFROM,
-			HANDLE_SENDTO,
-		};
-	};
 
-	enum LINK_STATUS
-	{
-		LS_UNINITIALIZE,
-		LS_ESTABLISHED,
-		LS_WAITCLOSE,
-		LS_WAITCLEAR,
-	};
 
-	enum POST_COM_KEY
-	{
-		PCK_ACCEPT_CLOSE = 1,
-		PCK_SOCKET_CLOSE,
-		PCK_USER_DATA,
-	};
-
-	class CInitWSASocketEnv
+	class CUdpSocket : public IUdpSocket
 	{
 	public:
-		CInitWSASocketEnv();
-		~CInitWSASocketEnv();
+		CUdpSocket();
+		virtual ~CUdpSocket();
+		virtual bool Initialize(IIOServer * ios, IUdpSocketCallback * cb, const char *ip, unsigned short port);
+		virtual bool DoRecv(char * buf, unsigned int len);
+		virtual bool DoSend(char * buf, unsigned int len, const char *dstip, unsigned short dstport);
+		virtual bool OnEPOLLMessage(int type, int flag);
+	public:
+		IIOServer * m_ios;
+		IUdpSocketCallback * m_cb;
+		sockaddr_in	m_addr;
+		tagRegister m_handle;
+
+		unsigned int m_iRecvLen;
+		char	*	 m_pRecvBuf;
 	};
+
 }
-extern LoggerId g_coreID;
-extern zsummer::CInitWSASocketEnv appInitSocket;
 
 
-#define LCD( log ) LOG_DEBUG( g_coreID, log )
-#define LCI( log ) LOG_INFO( g_coreID, log )
-#define LCW( log ) LOG_WARN( g_coreID, log )
-#define LCE( log ) LOG_ERROR( g_coreID, log )
-#define LCA( log ) LOG_ALARM( g_coreID, log )
-#define LCF( log ) LOG_FATAL( g_coreID, log )
 
 
 

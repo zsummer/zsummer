@@ -72,6 +72,7 @@ namespace zsummer
 		{
 			REG_ACCEPT, // listen
 			REG_ESTABLISHED, //socket write & read
+			REG_RECVFROM,
 			REG_CONNECT, // connect
 			REG_THREAD, // user message router
 			REG_INVALIDE,

@@ -314,12 +314,12 @@ public:
 	std::string m_text;
 };
 
-class CZSummer : public zsummer::network::IIOServerCallback , public zsummer::network::ITimerCallback
+class CZSummer : public zsummer::network::IIOServerCallback , public zsummer::network::ITimerCallback, public zsummer::network::IUdpSocketCallback
 {
 public:
 	CZSummer()
 	{
-		m_accept = NULL;
+		m_udp = NULL;
 		m_clientMax = 0;
 	}
 	~CZSummer()
@@ -346,6 +346,9 @@ public:
 			g_pios = NULL;
 			return false;
 		}
+		m_udp = zsummer::network::CreateUdpSocket();
+		m_udp->Initialize(g_pios, this, "0.0.0.0", 82);
+		m_udp->DoRecv(m_udpbuf, 1500);
 		g_pios->CreateTimer(1000, this);
 		while(true)
 		{
@@ -357,6 +360,14 @@ public:
 
 	virtual bool OnPost(void *pUser)
 	{
+		return true;
+	}
+	virtual bool OnRecvFrom(unsigned int nRecvlen, const char *ip, unsigned short port)
+	{
+		m_udpbuf[nRecvlen] ='\0';
+		LOGI("UDP recv data: " << m_udpbuf << ", len=" << nRecvlen << ", ip=" << ip << ", port=" << port);
+		m_udp->DoSend(m_udpbuf, nRecvlen, ip, port);
+		m_udp->DoRecv(m_udpbuf, 1500);
 		return true;
 	}
 	//! IIOServer's Timerr. per 1 seconds trigger. Don't spend too much time in here.
@@ -398,6 +409,9 @@ public:
 					<< " -- " << g_delay[i][TM_1000MS]
 					<< " -- " << g_delay[i][TM_LOWMS] << " --");
 				}
+
+				//test udp
+				//m_udp->DoSend("123456789", 9, "127.0.0.1", 82);
 			}
 			count++;
 		}
@@ -405,7 +419,8 @@ public:
 	}
 	
 private:
-	zsummer::network::ITcpAccept * m_accept;
+	zsummer::network::IUdpSocket * m_udp;
+	char m_udpbuf[1500];
 	std::string m_ip;
 	unsigned short m_port;
 	size_t m_clientMax;
