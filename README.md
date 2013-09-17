@@ -1,7 +1,7 @@
 Welcome to the zsummer wiki!  
   
 # introduction:  
-ZSUMMER是一款C++ 跨平台的 高性能的 轻量级的网络底层库.  
+ZSUMMER是一款C++ 跨平台的 高性能的 轻量级的网络底层库, 支持TCP, UDP, 拥有完善的定时器机制与日志系统..  
 ZSUMMER is a cross-platform C++ high performance lightweight network library.  
 # feature:   
 MIT开源 代码可以任意使用在任何场合.  
