@@ -37,10 +37,10 @@
 
 /*
  * AUTHORS:  YaweiZhang <yawei_zhang@foxmail.com>
- * VERSION:  2.3.1
+ * VERSION:  2.4.0
  * PURPOSE:  A lightweight library for error reporting and logging to file and screen .
  * CREATION: 2010.10.4
- * LCHANGE:  2013.09.08
+ * LCHANGE:  2013.10.07
  * LICENSE:  Expat/MIT License, See Copyright Notice at the begin of this file.
  */
 
@@ -112,6 +112,11 @@
  *  adjust output file named.
  *  add month directory option.
  *  adjust some detail.
+ * VERSION 2.4 <DATE: 2013.10.07>
+ *  add file limit option
+ *  used precision time in log.
+ *  support runtime update config used configure file.
+ *  fix tls bug in windows dll
  */
 
 #pragma once
@@ -179,14 +184,15 @@ public:
 	//! log4z Singleton
 	static ILog4zManager * GetInstance();
 
-	//! config
+	//! config | config over
 	virtual bool Config(std::string cfgPath) = 0;
 	//! create | write over 
 	virtual LoggerId CreateLogger(std::string name, 
 		std::string path="./log/",
 		int nLevel = LOG_LEVEL_DEBUG,
 		bool display = true,
-		bool monthdir = false) = 0;
+		bool monthdir = false,
+		unsigned int limitsize = 100/*million byte*/) = 0;
 
 	//! start & stop.
 	virtual bool Start() = 0;
@@ -202,6 +208,9 @@ public:
 	virtual bool SetLoggerLevel(LoggerId nLoggerID, int nLevel) = 0;
 	virtual bool SetLoggerDisplay(LoggerId nLoggerID, bool enable) = 0;
 	virtual bool SetLoggerMonthdir(LoggerId nLoggerID, bool use) = 0;
+	virtual bool SetLoggerLimitSize(LoggerId nLoggerID, unsigned int limitsize) = 0;
+	//! update logger's attribute from config file, thread safe.
+	virtual bool UpdateConfig() = 0;
 
 	//! log4z status statistics, thread safe.
 	virtual unsigned long long GetStatusTotalWriteCount() = 0;
@@ -231,6 +240,16 @@ extern __thread char g_log4zstreambuf[LOG4Z_LOG_BUF_SIZE];
 #endif
 
 //! base micro.
+#ifdef  _WINDLL
+#define LOG_STREAM(id, level, log)\
+{\
+	char logbuf[LOG4Z_LOG_BUF_SIZE];\
+	zsummer::log4z::CStringStream ss(logbuf, LOG4Z_LOG_BUF_SIZE);\
+	ss << log;\
+	ss << " ( " << __FILE__ << " ) : "  << __LINE__;\
+	zsummer::log4z::ILog4zManager::GetInstance()->PushLog(id, level, logbuf);\
+}
+#else
 #define LOG_STREAM(id, level, log)\
 {\
 	zsummer::log4z::CStringStream ss(g_log4zstreambuf, LOG4Z_LOG_BUF_SIZE);\
@@ -238,6 +257,8 @@ extern __thread char g_log4zstreambuf[LOG4Z_LOG_BUF_SIZE];
 	ss << " ( " << __FILE__ << " ) : "  << __LINE__;\
 	zsummer::log4z::ILog4zManager::GetInstance()->PushLog(id, level, g_log4zstreambuf);\
 }
+#endif
+
 
 //! fast micro
 #define LOG_DEBUG(id, log) LOG_STREAM(id, LOG_LEVEL_DEBUG, log)
