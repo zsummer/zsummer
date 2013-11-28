@@ -189,6 +189,7 @@ public:
 		addDelayData(TD_RECV, testTimeUsed);
 		m_socket->DoRecv(m_recving._orgdata, 2);
 		g_pios->CreateTimer(500+rand()%1000, this);
+		//SendOnce();
 		return true;
 	}
 	virtual bool OnConnect(bool bConnected)

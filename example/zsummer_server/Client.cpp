@@ -63,8 +63,7 @@ void CClient::InitSocket(CProcess *proc, ITcpSocket *s)
 bool CClient::OnRecv(unsigned int nRecvedLen)
 {
 	m_curRecvLen += nRecvedLen;
-	m_process->AddTotalRecvCount(1);
-	m_process->AddTotalRecvLen(nRecvedLen);
+
 
 	int needRecv = zsummer::protocol4z::CheckBuffIntegrity(m_recving._orgdata, m_curRecvLen, _MSG_BUF_LEN);
 	if ( needRecv == -1)
@@ -91,6 +90,9 @@ bool CClient::OnRecv(unsigned int nRecvedLen)
 		m_socket->Close();
 		return false;
 	}
+
+	m_process->AddTotalRecvCount(1);
+	m_process->AddTotalRecvLen(m_curRecvLen);
 	//! ¼ÌÐøÊÕ°ü
 	m_recving._len = 0;
 	m_curRecvLen = 0;
@@ -146,8 +148,6 @@ bool CClient::OnConnect(bool bConnected)
 
 bool CClient::OnSend(unsigned int nSentLen)
 {
-	m_process->AddTotalSendCount(1);
-	m_process->AddTotalSendLen(nSentLen);
 	m_curSendLen += nSentLen;
 	if (m_curSendLen < m_sending._len)
 	{
@@ -155,6 +155,8 @@ bool CClient::OnSend(unsigned int nSentLen)
 	}
 	else if (m_curSendLen == m_sending._len)
 	{
+		m_process->AddTotalSendCount(1);
+		m_process->AddTotalSendLen(m_curSendLen);
 		m_curSendLen = 0;
 		if (m_sendque.empty())
 		{
