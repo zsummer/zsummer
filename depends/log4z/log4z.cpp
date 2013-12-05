@@ -231,12 +231,12 @@ struct LoggerInfo
 	}
 	void SetDefaultInfo()
 	{ 
-		_path = "./log/"; 
-		_level = LOG_LEVEL_DEBUG; 
-		_display = true; 
+		_path = LOG4Z_DEFAULT_PATH; 
+		_level = LOG4Z_DEFAULT_LEVEL; 
+		_display = LOG4Z_DEFAULT_DISPLAY; 
 		_enable = false; 
-		_monthdir = false; 
-		_limitsize = 100;
+		_monthdir = LOG4Z_DEFAULT_MONTHDIR; 
+		_limitsize = LOG4Z_DEFAULT_LIMITSIZE;
 	}
 };
 
@@ -526,12 +526,12 @@ public:
 		m_bRuning = false;
 		m_lastId = LOG4Z_MAIN_LOGGER_ID;
 		GetProcessInfo(m_loggers[LOG4Z_MAIN_LOGGER_ID]._name, m_loggers[LOG4Z_MAIN_LOGGER_ID]._pid);
-		m_ids["Main"] = LOG4Z_MAIN_LOGGER_ID;
+		m_ids[LOG4Z_MAIN_LOGGER_NAME] = LOG4Z_MAIN_LOGGER_ID;
 
-		m_uStatusTotalPushLog = 0;
-		m_uStatusTotalPopLog = 0;
-		m_uStatusTotalWriteFileCount = 0;
-		m_uStatusTotalWriteFileBytes = 0;
+		m_ullStatusTotalPushLog = 0;
+		m_ullStatusTotalPopLog = 0;
+		m_ullStatusTotalWriteFileCount = 0;
+		m_ullStatusTotalWriteFileBytes = 0;
 	}
 	~CLogerManager()
 	{
@@ -689,6 +689,24 @@ public:
 			pLog->_precise = tm.tv_usec/1000;
 #endif
 		}
+
+		if (m_loggers[pLog->_id]._display && LOG4Z_SYNCHRONOUS_DISPLAY)
+		{
+			tm tt;
+			if (!TimeToTm(pLog->_time, &tt))
+			{
+				memset(&tt, 0, sizeof(tt));
+			}
+			std::string text;
+			sprintf(pLog->_content, "%d-%02d-%02d %02d:%02d:%02d.%03d %s ", 
+				tt.tm_year+1900, tt.tm_mon+1, tt.tm_mday, tt.tm_hour, tt.tm_min, tt.tm_sec, pLog->_precise,
+				LOG_STRING[pLog->_level]);
+			text = pLog->_content;
+			text += log;
+			text += " \r\n";
+			ShowColorText(text.c_str(), pLog->_level);
+		}
+
 		int len = (int) strlen(log);
 		if (len >= LOG4Z_LOG_BUF_SIZE)
 		{
@@ -701,7 +719,7 @@ public:
 		}
 		CAutoLock l(m_lock);
 		m_logs.push_back(pLog);
-		m_uStatusTotalPushLog ++;
+		m_ullStatusTotalPushLog ++;
 		return true;
 	}
 
@@ -765,15 +783,15 @@ public:
 	}
 	unsigned long long GetStatusTotalWriteCount()
 	{
-		return m_uStatusTotalWriteFileCount;
+		return m_ullStatusTotalWriteFileCount;
 	}
 	unsigned long long GetStatusTotalWriteBytes()
 	{
-		return m_uStatusTotalWriteFileBytes;
+		return m_ullStatusTotalWriteFileBytes;
 	}
 	unsigned long long GetStatusWaitingCount()
 	{
-		return m_uStatusTotalPushLog - m_uStatusTotalPopLog;
+		return m_ullStatusTotalPushLog - m_ullStatusTotalPopLog;
 	}
 	unsigned int GetStatusActiveLoggers()
 	{
@@ -869,7 +887,7 @@ protected:
 			while(PopLog(pLog))
 			{
 				//
-				m_uStatusTotalPopLog ++;
+				m_ullStatusTotalPopLog ++;
 				//discard
 				LoggerInfo & curLogger = m_loggers[pLog->_id];
 				if (!curLogger._enable || pLog->_level <curLogger._level  )
@@ -922,16 +940,16 @@ protected:
 				size_t writeLen = strlen(pWriteBuf);
 				curLogger._handle.Write(pWriteBuf, writeLen);
 				curLogger._curWriteLen += (unsigned int)writeLen;
-				if (curLogger._display)
+				if (curLogger._display && !LOG4Z_SYNCHRONOUS_DISPLAY)
 				{
 					ShowColorText(pWriteBuf, pLog->_level);
 				}
 
 				needFlush[pLog->_id] ++;
 
-				m_uStatusTotalWriteFileCount++;
-				m_uStatusTotalWriteFileBytes+=(unsigned int)writeLen;
-				delete []pLog;
+				m_ullStatusTotalWriteFileCount++;
+				m_ullStatusTotalWriteFileBytes+=writeLen;
+				delete pLog;
 				pLog = NULL;
 			}
 
@@ -961,7 +979,7 @@ protected:
 				m_loggers[i]._handle.Close();
 			}
 		}
-		delete pWriteBuf;
+		delete []pWriteBuf;
 		pWriteBuf = NULL;
 
 	}
@@ -987,12 +1005,12 @@ private:
 
 	//status statistics
 	//write file
-	unsigned int m_uStatusTotalWriteFileCount;
-	unsigned int m_uStatusTotalWriteFileBytes;
+	unsigned long long m_ullStatusTotalWriteFileCount;
+	unsigned long long m_ullStatusTotalWriteFileBytes;
 
 	//Log queue statistics
-	unsigned int m_uStatusTotalPushLog;
-	unsigned int m_uStatusTotalPopLog;
+	unsigned long long m_ullStatusTotalPushLog;
+	unsigned long long m_ullStatusTotalPopLog;
 
 };
 
@@ -1349,7 +1367,7 @@ void GetProcessInfo(std::string &name, std::string &pid)
 
 
 #ifdef WIN32
-
+CLock gs_ShowColorTextLock;
 const static WORD cs_sColor[LOG_LEVEL_FATAL+1] = {
 	0,
 	FOREGROUND_BLUE|FOREGROUND_GREEN,
@@ -1381,15 +1399,14 @@ void ShowColorText(const char *text, int level)
 	CONSOLE_SCREEN_BUFFER_INFO oldInfo;
 	if (!GetConsoleScreenBufferInfo(hStd, &oldInfo)) goto showfail;
 
-	if (SetConsoleTextAttribute(hStd, cs_sColor[level]))
 	{
+		CAutoLock l(gs_ShowColorTextLock);
+		SetConsoleTextAttribute(hStd, cs_sColor[level]);
 		printf(text);
 		SetConsoleTextAttribute(hStd, oldInfo.wAttributes);
 	}
-	else
-	{
-		goto showfail;
-	}
+
+
 #endif
 
 	return;
