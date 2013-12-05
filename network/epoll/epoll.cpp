@@ -93,7 +93,7 @@ bool CIOServer::Initialize(IIOServerCallback *cb)
 		}
 		SetNonBlock(m_sockpair[0]);
 		SetNonBlock(m_sockpair[1]);
-		SetNoDelay(m_sockpair[1]);
+		SetNoDelay(m_sockpair[0]);
 		SetNoDelay(m_sockpair[1]);
 		m_recv._ptr = this;
 		m_recv._type = tagRegister::REG_THREAD;
@@ -243,12 +243,11 @@ void CIOServer::RunOnce()
 		if (pReg->_type == tagRegister::REG_THREAD)
 		{
 			char buf[1000];
-			while (recv(pReg->_fd, buf, 1000, 0) > 0){}
+			while (recv(pReg->_fd, buf, 1000, 0) > 0);
 
 			MsgVct msgs;
 			m_msglock.Lock();
-			msgs = m_msgs;
-			m_msgs.clear();
+			msgs.swap(m_msgs);
 			m_msglock.UnLock();
 
 			for (MsgVct::iterator iter = msgs.begin(); iter != msgs.end(); ++iter)
