@@ -57,7 +57,7 @@ using namespace zsummer::thread4z;
 using namespace zsummer::network;
 
 //! 消息包缓冲区大小
-#define _MSG_BUF_LEN	(8*1024)
+#define _MSG_BUF_LEN	(2*1024)
 
 
 

@@ -53,7 +53,9 @@ using namespace std;
 
 
 //! 消息包缓冲区大小
-#define _MSG_BUF_LEN	(8*1024)
+#define _MSG_BUF_LEN	(2*1024)
+std::string g_fillString;
+int g_ping_pong = 1;
 
 //! 消息包 
 struct Packet
@@ -139,7 +141,6 @@ public:
 		m_curRecvLen = 0;
 		memset(&m_sending, 0, sizeof(m_sending));
 		m_curSendLen = 0;
-		m_text.resize(1000, 'a');
 	}
 	~CClient()
 	{
@@ -188,8 +189,14 @@ public:
 		testTimeUsed = zsummer::utility::GetTimeMillisecond()-testTimeUsed;
 		addDelayData(TD_RECV, testTimeUsed);
 		m_socket->DoRecv(m_recving._orgdata, 2);
-		g_pios->CreateTimer(500+rand()%1000, this);
-		//SendOnce();
+		if (g_ping_pong)
+		{
+			SendOnce();
+		}
+		else
+		{
+			g_pios->CreateTimer(2500+rand()%5000, this);
+		}
 		return true;
 	}
 	virtual bool OnConnect(bool bConnected)
@@ -288,7 +295,7 @@ public:
 		zsummer::protocol4z::WriteStream ws(p->_orgdata, _MSG_BUF_LEN);
 		ws << (unsigned short) 1; //protocol id
 		ws << p->_senddelay; // local tick count
-		ws << m_text; // append text, fill the length protocol.
+		ws << g_fillString; // append text, fill the length protocol.
 		p->_len = ws.GetWriteLen();
 		if (p == &m_sending)
 		{
@@ -312,7 +319,6 @@ public:
 	//! 当前写包
 	Packet m_sending;
 	unsigned short m_curSendLen;
-	std::string m_text;
 };
 
 class CZSummer : public zsummer::network::IIOServerCallback , public zsummer::network::ITimerCallback, public zsummer::network::IUdpSocketCallback
@@ -447,8 +453,9 @@ int main(int argc, char* argv[])
 	//! 启动日志服务
 	zsummer::log4z::ILog4zManager::GetInstance()->Config("client.cfg");
 	zsummer::log4z::ILog4zManager::GetInstance()->Start();
-	//! ip:port:count   分别对应服务器的IP PORT和要连接的socket数量.
-	zsummer::utility::SleepMillisecond(500);// 让提示出现在日志后面.
+	
+	zsummer::utility::SleepMillisecond(500);
+	g_fillString.resize(1000, 'z');
 	cout <<"please entry ip" <<endl;
 	std::string ip;
 	cin >> ip;
@@ -458,6 +465,8 @@ int main(int argc, char* argv[])
 	cout << "please entry create link count" << endl;
 	unsigned short count = 0;
 	cin >> count;
+	cout << "please entry ping-pong" << endl;
+	cin >> g_ping_pong;
 	if (port == 0 || count <=0)
 	{
 		LOGF("user entry is error. ip=" << ip << ", port=" << port << ", count=" << count);
