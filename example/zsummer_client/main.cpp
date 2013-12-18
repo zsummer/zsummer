@@ -195,7 +195,7 @@ public:
 		}
 		else
 		{
-			g_pios->CreateTimer(2500+rand()%5000, this);
+			g_pios->CreateTimer(9000+rand()%1500, this);
 		}
 		return true;
 	}
@@ -381,7 +381,7 @@ public:
 	virtual void OnTimer(unsigned long long timerID)
 	{
 
-		//限定每秒200次connect
+		//限定每秒200 connecter
 		size_t clientCount=m_clients.size();
 		if (clientCount < m_clientMax)
 		{
