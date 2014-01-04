@@ -46,7 +46,7 @@ make
 
 in windows:  
 cd zsummer/example  
-use vs2010 open  zsummer.sln  
+use vs2010 open  zsummer_11x.sln  
 
 
 # auther: 张亚伟 YaweiZhang   
