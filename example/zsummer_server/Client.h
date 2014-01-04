@@ -72,6 +72,9 @@ public:
 	//! µ±Ç°Ð´°ü
 	Packet m_sending;
 	unsigned short m_curSendLen;
+
+	//! cache
+	std::string m_textCache;
 };
 
 #endif

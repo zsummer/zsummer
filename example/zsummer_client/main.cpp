@@ -65,69 +65,12 @@ struct Packet
 	char		   _orgdata[_MSG_BUF_LEN];
 };
 
+unsigned long long g_totalEcho;
+unsigned long long g_totalEchoTime;
 
-//统计
+unsigned long long g_lastEcho;
+unsigned long long g_lastEchoTime;
 
-enum TYPE_DELAY
-{
-	TD_SEND,
-	TD_RECV,
-	TD_TOTAL,
-	TD_END,
-};
-enum TIME_DELAY
-{
-	TM_1MS, // < 1 ms
-	TM_5MS, // < 5 ms
-	TM_10MS,
-	TM_20MS,
-	TM_40MS,
-	TM_60MS,
-	TM_100MS,
-	TM_1000MS,
-	TM_LOWMS,// error dalay time
-	TM_END,
-};
-unsigned long long g_delay[TD_END][TM_END] = {{0}};
-inline void addDelayData(TYPE_DELAY td, unsigned long long usedtime)
-{
-	if (usedtime <= 1)
-	{
-		g_delay[td][TM_1MS]++;
-	}
-	else if (usedtime <= 5)
-	{
-		g_delay[td][TM_5MS]++;
-	}
-	else if (usedtime <= 10)
-	{
-		g_delay[td][TM_10MS]++;
-	}
-	else if (usedtime <= 20)
-	{
-		g_delay[td][TM_20MS]++;
-	}
-	else if (usedtime <= 40)
-	{
-		g_delay[td][TM_40MS]++;
-	}
-	else if (usedtime <= 60)
-	{
-		g_delay[td][TM_60MS]++;
-	}
-	else if (usedtime <= 100)
-	{
-		g_delay[td][TM_100MS]++;
-	}
-	else if (usedtime <= 1000)
-	{
-		g_delay[td][TM_1000MS]++;	
-	}
-	else
-	{
-		g_delay[td][TM_LOWMS]++;
-	}
-}
 zsummer::network::IIOServer * g_pios;
 //! 上层Socekt Client的二次封装
 class CClient :public zsummer::network::ITcpSocketCallback, public zsummer::network::ITimerCallback
@@ -170,7 +113,6 @@ public:
 		}
 
 		//! 解包完成 进行消息处理
-		unsigned long long testTimeUsed = zsummer::utility::GetTimeMillisecond();
 		zsummer::protocol4z::ReadStream rs(m_recving._orgdata, m_curRecvLen);
 		try
 		{
@@ -186,8 +128,6 @@ public:
 		m_recving._len = 0;
 		m_recving._senddelay = 0;
 		m_curRecvLen = 0;
-		testTimeUsed = zsummer::utility::GetTimeMillisecond()-testTimeUsed;
-		addDelayData(TD_RECV, testTimeUsed);
 		m_socket->DoRecv(m_recving._orgdata, 2);
 		if (g_ping_pong)
 		{
@@ -223,10 +163,6 @@ public:
 		}
 		else if (m_curSendLen == m_sending._len)
 		{
-			unsigned long long senduse = zsummer::utility::GetTimeMillisecond();
-			senduse = senduse - m_sending._senddelay;
-			addDelayData(TD_SEND, senduse);
-			
 			m_curSendLen = 0;
 			if (m_sendque.empty())
 			{
@@ -262,12 +198,18 @@ public:
 		case 1:
 			{
 				unsigned long long localTick = 0;
-				std::string text;
-				rs >> localTick >> text;
+				m_textCache.clear();
+				rs >> localTick >> m_textCache;
 				
 				unsigned long long curTick = zsummer::utility::GetTimeMillisecond();
-				curTick = curTick - localTick;
-				addDelayData(TD_TOTAL, curTick);
+				if (curTick < localTick)
+				{
+					throw std::runtime_error("curTick < localTick");
+				}
+				
+				curTick -= localTick;
+				g_totalEcho++;
+				g_totalEchoTime += curTick;
 				
 				
 			}
@@ -319,6 +261,9 @@ public:
 	//! 当前写包
 	Packet m_sending;
 	unsigned short m_curSendLen;
+
+	//! cache
+	std::string m_textCache;
 };
 
 class CZSummer : public zsummer::network::IIOServerCallback , public zsummer::network::ITimerCallback, public zsummer::network::IUdpSocketCallback
@@ -402,21 +347,14 @@ public:
 			static unsigned int count = 0;
 			if (count%5 == 0)
 			{
-				LOGI("-- type -- 1MS -- 5MS -- 10MS -- 20MS -- 40MS -- 60MS -- 100MS -- 1S -- LOW MS --");
-				for (int i=0; i<TD_END; i++)
-				{
-					LOGI("--  " << i << " "
-					<< " -- " << g_delay[i][TM_1MS]
-					<< " -- " << g_delay[i][TM_5MS]
-					<< " -- " << g_delay[i][TM_10MS]
-					<< " -- " << g_delay[i][TM_20MS]
-					<< " -- " << g_delay[i][TM_40MS]
-					<< " -- " << g_delay[i][TM_60MS]
-					<< " -- " << g_delay[i][TM_100MS]
-					<< " -- " << g_delay[i][TM_1000MS]
-					<< " -- " << g_delay[i][TM_LOWMS] << " --");
-				}
-
+				unsigned long long totalEcho = g_totalEcho - g_lastEcho;
+				unsigned long long totalTime = g_totalEchoTime - g_lastEchoTime;
+				
+				LOGI("EchoSpeed[" << totalEcho/5.0
+					<<"]  EchoDelay[" << totalTime/1.0/(totalEcho==0?1:totalEcho)
+					<<"].");
+				g_lastEcho = g_totalEcho;
+				g_lastEchoTime = g_totalEchoTime;
 				//test udp
 				//m_udp->DoSend("123456789", 9, "127.0.0.1", 82);
 			}
@@ -453,9 +391,12 @@ int main(int argc, char* argv[])
 	//! 启动日志服务
 	zsummer::log4z::ILog4zManager::GetInstance()->Config("client.cfg");
 	zsummer::log4z::ILog4zManager::GetInstance()->Start();
-	
-	zsummer::utility::SleepMillisecond(500);
 	g_fillString.resize(1000, 'z');
+	g_totalEcho = 0;
+	g_totalEchoTime = 0;
+	g_lastEcho = 0;
+	g_lastEchoTime = 0;
+
 	cout <<"please entry ip" <<endl;
 	std::string ip;
 	cin >> ip;

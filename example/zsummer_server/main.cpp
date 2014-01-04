@@ -90,19 +90,13 @@ int main(int argc, char* argv[])
 			temp3 += (*iter)->GetTotalRecvCount();
 			temp4 += (*iter)->GetTotalSendCount();
 		}
-		LOGD("TotalLinked:" << g_nTotalLinked 
-			<<",  TotalClosed:" << g_nTotalCloesed
-			<< " \n\t"
-
-			<< ",  TotalRecvd:" << temp1/1024.0/1024.0 
-			<< " M,  TotalSent:" << temp2/1024.0/1024.0
-			<< " M, Recv Speed:" << (temp1 - nLastRecv)/1024.0/1024.0/5.0
-			<< " M,  Send Speed:" << (temp2 - nLastSend)/1024.0/1024.0/5.0
-			<< " M, \n\t"
-			<< ",  TotalRecvCount:" << temp3
-			<< ",  TotalSentCount:" << temp4
-			<< ",  RecvCount Speed:" << (temp3 - nLastRecvCount)/5.0
-			<< " ,  SendCount Speed:" << (temp4 - nLastSendCount)/5.0);
+		LOGD("allLink[" << g_nTotalLinked 
+			<<"]  allClosed[" << g_nTotalCloesed
+			<< "]  Recv[" << (temp1 - nLastRecv)/1024.0/1024.0/5.0
+			<< "]M  Send[" << (temp2 - nLastSend)/1024.0/1024.0/5.0
+			<< "]M  RecvSpeed[" << (temp3 - nLastRecvCount)/5.0
+			<< "]  SendSpeed[" << (temp4 - nLastSendCount)/5.0
+			<< "].");
 		nLastRecv = temp1;
 		nLastSend = temp2;
 		nLastRecvCount = temp3;
