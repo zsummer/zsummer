@@ -28,11 +28,9 @@ Each IOSERVER can limit the link the role of connecter, accepter and clienter ro
 Interface design fully asynchronous rule out the possibility of the underlying problem of re-entry business logic.   
   
 # 压测数据 stress report    
-WINDOWS: 60K并发 吞吐量120M 服务端每秒120,000次的消息包处理与收发 CPU总占用小于1%.  
-WINDOWS: 60K concurrent, throughput of 120M, server 120000 times per second, the packet processing and transceiver CPU total occupancy of less than 1%.  
-  
-LINUX, 因虚拟机性能问题 数据比windows差点: 40K并发 吞吐量80M 服务端每秒80,000次的消息包处理与收发, CPU总占用小于30%.  
-LINUX, for virtual machine performance data than windows almost: 40K concurrent throughput of 80M server 80000 times per second, the packet processing and transceiver, CPU total occupancy of less than 30%.  
+![ping-pong stress](https://raw.github.com/zsummer/wiki-pic/master/stress_report/ping_pong_stress.png)
+
+![100k_stress](https://raw.github.com/zsummer/wiki-pic/master/stress_report/100k_stress.png)
  
 详细见报告页:[stress-report](https://github.com/zsummer/zsummer/wiki/stress-report)   
 For details see the report page: [stress-report] ( https://github.com/zsummer/zsummer/wiki/stress-report )
@@ -46,7 +44,7 @@ make
 
 in windows:  
 cd zsummer/example  
-use vs2010 open  zsummer_11x.sln  
+use vs2005 open  zsummer_11x.sln  
 
 
 # auther: 张亚伟 YaweiZhang   
