@@ -99,8 +99,9 @@ public:
 	virtual bool OnRecv(unsigned int nRecvedLen)
 	{
 		m_curRecvLen += nRecvedLen;
-		int needRecv = zsummer::protocol4z::CheckBuffIntegrity(m_recving._orgdata, m_curRecvLen, _MSG_BUF_LEN);
-		if ( needRecv == -1)
+		std::pair<bool, zsummer::protocol4z::DefaultStreamHeadTrait::Integer> ret= zsummer::protocol4z::CheckBuffIntegrity<zsummer::protocol4z::DefaultStreamHeadTrait>(m_recving._orgdata, m_curRecvLen, _MSG_BUF_LEN);
+		int needRecv = ret.second;
+		if (!ret.first)
 		{
 			LOGE("killed socket: CheckBuffIntegrity error ");
 			m_socket->Close();
@@ -113,7 +114,7 @@ public:
 		}
 
 		//! 解包完成 进行消息处理
-		zsummer::protocol4z::ReadStream rs(m_recving._orgdata, m_curRecvLen);
+		zsummer::protocol4z::ReadStream<> rs(m_recving._orgdata, m_curRecvLen);
 		try
 		{
 			MessageEntry(rs);
@@ -188,7 +189,7 @@ public:
 		m_establish = 0;
 		return true;
 	}
-	void MessageEntry(zsummer::protocol4z::ReadStream & rs)
+	void MessageEntry(zsummer::protocol4z::ReadStream<> & rs)
 	{
 		//协议流异常会被上层捕获并关闭连接
 		unsigned short protocolID = 0;
@@ -234,7 +235,7 @@ public:
 			p = &m_sending;
 		}
 		p->_senddelay = zsummer::utility::GetTimeMillisecond();
-		zsummer::protocol4z::WriteStream ws(p->_orgdata, _MSG_BUF_LEN);
+		zsummer::protocol4z::WriteStream<> ws(p->_orgdata, _MSG_BUF_LEN);
 		ws << (unsigned short) 1; //protocol id
 		ws << p->_senddelay; // local tick count
 		ws << g_fillString; // append text, fill the length protocol.

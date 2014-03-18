@@ -2,6 +2,7 @@
 
 #include "../protocol4z.h"
 #include <iostream>
+#include <stdio.h>
 using namespace std;
 using namespace zsummer::protocol4z;
 
@@ -22,26 +23,19 @@ struct tagData
 	float f;
 	double lf;
 	std::string str;
+	std::vector<int> vct;
+	std::map<int, int> kv;
+	std::set<int> st;
+	std::multimap<int,int> mkv;
+	std::multiset<int> mst;
+	std::list<int> lt;
+	std::deque<int> dq;
+	std::queue<int> qu;
 };
-void Clear(tagData&tag1)
-{
-	tag1.bl = false;
-	tag1.ch = 0; 
-	tag1.uch = 0; 
-	tag1.ush = 0; 
-	tag1.n = 0; 
-	tag1.u = 0; 
-	tag1.l = 0; 
-	tag1.ul = 0;  
-	tag1.ll = 0; 
-	tag1.ull = 0; 
-	tag1.f = 0; 
-	tag1.lf = 0;
-	tag1.str.clear();
-}
+
 bool operator==(const tagData & tag1, const tagData &tag2)
 {
-	return tag1.bl == tag2.bl 
+	return tag1.bl == tag2.bl
 		&& tag1.ch == tag2.ch
 		&& tag1.uch == tag2.uch
 		&& tag1.ush == tag2.ush
@@ -53,10 +47,17 @@ bool operator==(const tagData & tag1, const tagData &tag2)
 		&& tag1.ull == tag2.ull
 		&& tag1.f == tag2.f
 		&& tag1.lf == tag2.lf
-		&& tag1.str == tag2.str;
+		&& tag1.str == tag2.str
+		&& tag1.vct.size() == tag2.vct.size()
+		&& tag1.kv.size() == tag2.kv.size()
+		&& tag1.st.size() == tag2.st.size()
+		&& tag1.mkv.size() == tag2.mkv.size()
+		&& tag1.mst.size() == tag2.mst.size()
+		&& tag1.lt.size() == tag2.lt.size()
+		&& tag1.dq.size() == tag2.dq.size();
 }
-
-ReadStream & operator >>(ReadStream & rs, tagData & data)
+template<class StreamHeadTrait>
+ReadStream<StreamHeadTrait> & operator >>(ReadStream<StreamHeadTrait> & rs, tagData & data)
 {
 	rs >> data.bl;
 	rs >> data.ch;
@@ -72,9 +73,17 @@ ReadStream & operator >>(ReadStream & rs, tagData & data)
 	rs >> data.f;
 	rs >> data.lf;
 	rs >> data.str;
+	rs >> data.vct;
+	rs >> data.kv;
+	rs >> data.st;
+	rs >> data.mkv;
+	rs >> data.mst;
+	rs >> data.lt;
+	rs >> data.dq;
 	return rs;
 }
-WriteStream & operator <<(WriteStream & ws, const tagData & data)
+template<class StreamHeadTrait>
+WriteStream<StreamHeadTrait> & operator <<(WriteStream<StreamHeadTrait> & ws, const tagData & data)
 {
 	ws << data.bl;
 	ws << data.ch;
@@ -90,101 +99,297 @@ WriteStream & operator <<(WriteStream & ws, const tagData & data)
 	ws << data.f;
 	ws << data.lf;
 	ws << data.str;
+	ws << data.vct;
+	ws << data.kv;
+	ws << data.st;
+	ws << data.mkv;
+	ws << data.mst;
+	ws << data.lt;
+	ws << data.dq;
 	return ws;
 }
 int main()
 {
-	char buf[100];
-	
-	tagData test1;
-	tagData test2;
-	Clear(test1);
-	Clear(test2);
-	test1.bl = true;
-	test1.ch = 'a';
-	test1.uch = 200;
-	test1.sh = -1;
-	test1.ush = 65000;
-	test1.n = -2;
-	test1.u = 3333;
-	test1.l = -3;
-	test1.ul = 111;
-	test1.ll = -4;
-	test1.ull = 250;
-	test1.f = (float)123.231;
-	test1.lf = -120.333333333;
-	test1.str = "1234567";
 
+	tagData test1 = {true, 'a', 200, -1, 65000, -2, 333,-3,111,-4,250, (float)123.2,123.4, "1234567"};
+	test1.vct.push_back(1);
+	test1.vct.push_back(2);
+	test1.kv[1] = 1;
+	test1.kv[100] = 100;
+	test1.st.insert(10);
+	test1.mkv.insert(std::make_pair(10,10));
+	test1.mkv.insert(std::make_pair(10,100));
+	test1.mst.insert(100);
+	test1.mst.insert(100);
+	test1.lt.push_back(10);
+	test1.dq.push_back(100);
+	const unsigned int bodyLength = 59 + 7 +8 + 16 + 4+16+8+4+4;
+	const unsigned int Count = 9;
 
-	int randCount = 2;
-	bool bigEndianType = true;
 
 	
-	while (randCount >0)
 	{
-		randCount--;
-		bigEndianType = !bigEndianType;
-		memset(buf, 0, sizeof(buf));
-		Clear(test2);
-		//2head, 59 pod, 2 str head, 7 string char count.
-		const int protocolLen = 2+59+2+7;
-		WriteStream ws(buf, protocolLen, bigEndianType);
+		tagData test2 = { 0 };
+		DefaultStreamHeadTrait::Integer packLen = bodyLength +DefaultStreamHeadTrait::PackLenSize * Count + DefaultStreamHeadTrait::PreOffset + DefaultStreamHeadTrait::PostOffset;
+		WriteStream<DefaultStreamHeadTrait> ws;
 		try
 		{
 			ws << test1;
+			cout << "write all type success" << endl;
 		}
-		catch(std::runtime_error e)
+		catch (std::runtime_error e)
 		{
-			cout << e.what() << endl;
+			cout << "write all type failed. error=" << e.what() << endl;
 		}
 
-		unsigned short headerlen = ReadStreamHeader(buf, bigEndianType);
+		DefaultStreamHeadTrait::Integer packLen2 = StreamToInteger<DefaultStreamHeadTrait::Integer, DefaultStreamHeadTrait>(ws.GetWriteStream() + DefaultStreamHeadTrait::PreOffset);
+
+		if (packLen2 != packLen || packLen2 != ws.GetWriteLen())
+		{
+			cout << "check write header len error" << endl;
+		}
+		else
+		{
+			cout << "check write header len success" << endl;
+		}
 		
-		if (headerlen != protocolLen)
+		std::pair<bool,DefaultStreamHeadTrait::Integer> ret = CheckBuffIntegrity<DefaultStreamHeadTrait>(ws.GetWriteStream(), 1, 100);
+		if (ret.first && ret.second == DefaultStreamHeadTrait::HeadLen-1)
 		{
-			cout << "read header len error" << endl;
+			cout << "CheckBuffIntegrity check write header len success" << endl;
 		}
-
-		ReadStream rs(buf, headerlen, bigEndianType);
+		else
+		{
+			cout << "CheckBuffIntegrity check write header len failed" << endl;
+		}
+		ret = CheckBuffIntegrity<DefaultStreamHeadTrait>(ws.GetWriteStream(), 50, 200);
+		if (ret.first && ret.second == ws.GetWriteLen() - 50)
+		{
+			cout << "CheckBuffIntegrity check write header len success" << endl;
+		}
+		else
+		{
+			cout << "CheckBuffIntegrity check write header len failed" << endl;
+		}
+		ret = CheckBuffIntegrity<DefaultStreamHeadTrait>(ws.GetWriteStream(), ws.GetWriteLen(), 200);
+		if (ret.first && ret.second == 0)
+		{
+			cout << "CheckBuffIntegrity check write header len success" << endl;
+		}
+		else
+		{
+			cout << "CheckBuffIntegrity check write header len failed" << endl;
+		}
+		ReadStream<DefaultStreamHeadTrait> rs(ws.GetWriteStream(), ws.GetWriteLen());
 		try
 		{
 			rs >> test2;
 		}
-		catch(std::runtime_error e)
+		catch (std::runtime_error e)
 		{
 			cout << e.what() << endl;
 		}
 		if (test1 == test2)
 		{
-			cout <<"check  protocol success" << endl;
+			cout << "check protocol success" << endl;
 		}
 		else
 		{
-			cout <<"check lprotocol failed" << endl;
+			cout << "check protocol failed" << endl;
 		}
 
-		try
-		{
-			ws << char(1);
-			cout <<"Bounds check  WriteStream failed" << endl;
-		}
-		catch (std::runtime_error e)
-		{
-			cout <<"Bounds check  WriteStream success. "<< endl;
-		}
 		try
 		{
 			char ch = 'a';
 			rs >> ch;
-			cout <<"Bounds check  ReadStream failed" << endl;
+			cout << "Bounds check  ReadStream failed" << endl;
 		}
 		catch (std::runtime_error e)
 		{
-			cout <<"Bounds check  ReadStream success."  << endl;
+			cout << "Bounds check  ReadStream success." << endl;
 		}
 	}
-	
 
+	cout << "\n\ncheck big stream" << endl;
+	//--------------------------
+	{
+		tagData test2 = { 0 };
+		TestBigStreamHeadTrait::Integer packLen = bodyLength + TestBigStreamHeadTrait::PackLenSize * Count + TestBigStreamHeadTrait::PreOffset + TestBigStreamHeadTrait::PostOffset;
+		WriteStream<TestBigStreamHeadTrait> ws;
+		try
+		{
+			ws << test1;
+			cout << "write all type success" << endl;
+		}
+		catch (std::runtime_error e)
+		{
+			cout << "write all type failed. error=" << e.what() << endl;
+		}
+
+		TestBigStreamHeadTrait::Integer packLen2 = StreamToInteger<TestBigStreamHeadTrait::Integer, TestBigStreamHeadTrait>(ws.GetWriteStream() + TestBigStreamHeadTrait::PreOffset);
+		packLen2 += TestBigStreamHeadTrait::HeadLen;
+		if (packLen2 != packLen || packLen2 != ws.GetWriteLen())
+		{
+			cout << "check write packLen2 len error" << endl;
+		}
+		else
+		{
+			cout << "check write packLen2 len success" << endl;
+		}
+
+		std::pair<bool, TestBigStreamHeadTrait::Integer> ret = CheckBuffIntegrity<TestBigStreamHeadTrait>(ws.GetWriteStream(), 1, 100);
+		if (ret.first && ret.second == TestBigStreamHeadTrait::HeadLen - 1)
+		{
+			cout << "CheckBuffIntegrity check write header len success" << endl;
+		}
+		else
+		{
+			cout << "CheckBuffIntegrity check write header len failed" << endl;
+		}
+		ret = CheckBuffIntegrity<TestBigStreamHeadTrait>(ws.GetWriteStream(), 50, 200);
+		if (ret.first && ret.second == ws.GetWriteLen() - 50)
+		{
+			cout << "CheckBuffIntegrity check write header len success" << endl;
+		}
+		else
+		{
+			cout << "CheckBuffIntegrity check write header len failed" << endl;
+		}
+		ret = CheckBuffIntegrity<TestBigStreamHeadTrait>(ws.GetWriteStream(), ws.GetWriteLen(), 200);
+		if (ret.first && ret.second == 0)
+		{
+			cout << "CheckBuffIntegrity check write header len success" << endl;
+		}
+		else
+		{
+			cout << "CheckBuffIntegrity check write header len failed" << endl;
+		}
+		ReadStream<TestBigStreamHeadTrait> rs(ws.GetWriteStream(), ws.GetWriteLen());
+		try
+		{
+			rs >> test2;
+		}
+		catch (std::runtime_error e)
+		{
+			cout << e.what() << endl;
+		}
+		if (test1 == test2)
+		{
+			cout << "check protocol success" << endl;
+		}
+		else
+		{
+			cout << "check protocol failed" << endl;
+		}
+
+		try
+		{
+			char ch = 'a';
+			rs >> ch;
+			cout << "Bounds check  ReadStream failed" << endl;
+		}
+		catch (std::runtime_error e)
+		{
+			cout << "Bounds check  ReadStream success." << endl;
+		}
+	}
+
+	cout << "\n\ncheck attach stream" << endl;
+	//--------------------------
+	{
+		tagData test2 = { 0 };
+		char buff[200] = { 0 };
+
+		TestBigStreamHeadTrait::Integer packLen = bodyLength + TestBigStreamHeadTrait::PackLenSize * Count + TestBigStreamHeadTrait::PreOffset + TestBigStreamHeadTrait::PostOffset;
+		WriteStream<TestBigStreamHeadTrait> ws(buff, packLen);
+		try
+		{
+			ws << test1;
+			cout << "write all type success" << endl;
+		}
+		catch (std::runtime_error e)
+		{
+			cout << "write all type failed. error=" << e.what() << endl;
+		}
+
+		TestBigStreamHeadTrait::Integer packLen2 = StreamToInteger<TestBigStreamHeadTrait::Integer, TestBigStreamHeadTrait>(ws.GetWriteStream() + TestBigStreamHeadTrait::PreOffset);
+		packLen2 += TestBigStreamHeadTrait::HeadLen;
+		if (packLen2 != packLen || packLen2 != ws.GetWriteLen())
+		{
+			cout << "check write packLen2 len error" << endl;
+		}
+		else
+		{
+			cout << "check write packLen2 len success" << endl;
+		}
+
+		std::pair<bool, TestBigStreamHeadTrait::Integer> ret = CheckBuffIntegrity<TestBigStreamHeadTrait>(ws.GetWriteStream(), 1, 100);
+		if (ret.first && ret.second == TestBigStreamHeadTrait::HeadLen - 1)
+		{
+			cout << "CheckBuffIntegrity check write header len success" << endl;
+		}
+		else
+		{
+			cout << "CheckBuffIntegrity check write header len failed" << endl;
+		}
+		ret = CheckBuffIntegrity<TestBigStreamHeadTrait>(ws.GetWriteStream(), 50, 200);
+		if (ret.first && ret.second == ws.GetWriteLen() - 50)
+		{
+			cout << "CheckBuffIntegrity check write header len success" << endl;
+		}
+		else
+		{
+			cout << "CheckBuffIntegrity check write header len failed" << endl;
+		}
+		ret = CheckBuffIntegrity<TestBigStreamHeadTrait>(ws.GetWriteStream(), ws.GetWriteLen(), 200);
+		if (ret.first && ret.second == 0)
+		{
+			cout << "CheckBuffIntegrity check write header len success" << endl;
+		}
+		else
+		{
+			cout << "CheckBuffIntegrity check write header len failed" << endl;
+		}
+		ReadStream<TestBigStreamHeadTrait> rs(ws.GetWriteStream(), ws.GetWriteLen());
+		try
+		{
+			rs >> test2;
+		}
+		catch (std::runtime_error e)
+		{
+			cout << e.what() << endl;
+		}
+		if (test1 == test2)
+		{
+			cout << "check protocol success" << endl;
+		}
+		else
+		{
+			cout << "check protocol failed" << endl;
+		}
+
+		try
+		{
+			char ch = 'a';
+			ws << ch;
+			cout << "Bounds check  WriteStream failed" << endl;
+		}
+		catch (std::runtime_error e)
+		{
+			cout << "Bounds check  WriteStream success." << endl;
+		}
+
+		try
+		{
+			char ch = 'a';
+			rs >> ch;
+			cout << "Bounds check  ReadStream failed" << endl;
+		}
+		catch (std::runtime_error e)
+		{
+			cout << "Bounds check  ReadStream success." << endl;
+		}
+	}
 
 	cout << "all check done . " << endl;
 	getchar();

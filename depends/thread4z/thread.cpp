@@ -190,8 +190,6 @@ bool zs_th_s::CSem::Create(int initcount, const char *  name)
 	{
 		if (strlen(name) > 256)
 		{
-			int * p = NULL;
-			*p = 3;
 			return false;
 		}
 		strcpy(m_name, name);

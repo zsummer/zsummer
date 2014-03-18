@@ -56,7 +56,7 @@ public:
 	virtual bool OnConnect(bool bConnected);
 	virtual bool OnSend(unsigned int nSentLen);
 	virtual bool OnClose();
-	void MessageEntry(zsummer::protocol4z::ReadStream & rs);
+	void MessageEntry(zsummer::protocol4z::ReadStream<> & rs);
 	void Send(char * buf, unsigned int len);
 	CProcess  * m_process;
 	ITcpSocket * m_socket;
