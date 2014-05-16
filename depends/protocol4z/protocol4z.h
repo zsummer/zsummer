@@ -40,7 +40,7 @@
  * VERSION:  0.3
  * PURPOSE:  A lightweight library for process protocol .
  * CREATION: 2013.07.04
- * LCHANGE:  2014.03.17
+ * LCHANGE:  2014.05.16
  * LICENSE:  Expat/MIT License, See Copyright Notice at the begin of this file.
  */
 
@@ -59,6 +59,8 @@
  *  support user-defined header
  *  WriteStream support auto alloc memory or attach exist memory
  *  protocol4z support stl container
+ * VERSION 0.4.0 <DATE: 2014.05.16>
+ *  Add some useful interface method
  * 
  */
 #pragma once
@@ -109,29 +111,30 @@ enum ZSummer_EndianType
 //|---------------pack len----------------------| //true
 //|---------------------|-------pack len--------| //false
 //
-struct DefaultStreamHeadTrait
+struct DefaultStreamHeadTraits
 {
 	typedef unsigned short Integer; //User-Defined Integer Type must in [unsigned char, unsigned short, unsigned int, unsigned long long].
 	const static Integer PreOffset = 0; //User-Defined 
 	const static Integer PostOffset = 0; //User-Defined 
-	const static bool PackLenIsContainHead = true; //User-Defined 
+	const static Integer MaxPackLen = (Integer)-1; //User-Defined. example:  Integer = unsigned short(-1) ==>(65535)
+	const static bool	 PackLenIsContainHead = true; //User-Defined 
 	const static ZSummer_EndianType EndianType = LittleEndian;//User-Defined 
-	const static Integer PackLenSize = sizeof(Integer); // Don't Touch. PackLenSize and sizeof(Integer) must be equal. 
-	const static Integer HeadLen = PreOffset + PackLenSize + PostOffset; //Don't Touch.
-	const static Integer MaxPackLen = (Integer)-1; // example:  Integer = unsigned short & MaxPackLen=65535
+	const static Integer IntegerTypeSize = sizeof(Integer); // Don't Touch. PackLenSize and sizeof(Integer) must be equal. 
+	const static Integer HeadLen = PreOffset + IntegerTypeSize + PostOffset; //Don't Touch. Head Length.
 };
 
 //protocol Traits example, User-Defined
-struct TestBigStreamHeadTrait
+struct TestBigStreamHeadTraits
 {
 	typedef unsigned int Integer;
 	const static Integer PreOffset = 2; 
-	const static Integer PackLenSize = sizeof(Integer); 
 	const static Integer PostOffset = 4;
-	const static Integer HeadLen = PreOffset + PackLenSize + PostOffset;
-	const static Integer MaxPackLen = -1; 
+	const static Integer MaxPackLen = -1;
 	const static bool PackLenIsContainHead = false;
 	const static ZSummer_EndianType EndianType = BigEndian;
+	const static Integer IntegerTypeSize = sizeof(Integer); // Don't Touch. PackLenSize and sizeof(Integer) must be equal. 
+	const static Integer HeadLen = PreOffset + IntegerTypeSize + PostOffset; //Don't Touch.
+
 };
 
 //stream translate to Integer with endian type.
@@ -158,7 +161,7 @@ inline ZSummer_EndianType __LocalEndianType();
 template<class StreamHeadTrait>
 inline std::pair<bool, typename StreamHeadTrait::Integer> 
 CheckBuffIntegrity(const char * buff, typename StreamHeadTrait::Integer curBuffLen, 
-				   typename StreamHeadTrait::Integer maxBuffLen);
+typename StreamHeadTrait::Integer maxBuffLen /*= StreamHeadTrait::MaxPackLen*/);
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -166,23 +169,36 @@ CheckBuffIntegrity(const char * buff, typename StreamHeadTrait::Integer curBuffL
 //////////////////////////////////////////////////////////////////////////
 //StreamHeadTrait: User-Defined like DefaultStreamHeadTrait
 //AllocType: inner allocate memory used this, default use std::allocator<char>
-template<class StreamHeadTrait=DefaultStreamHeadTrait, class _Alloc = std::allocator<char> >
+template<class StreamHeadTrait/*=DefaultStreamHeadTraits*/, class _Alloc = std::allocator<char> >
 class WriteStream
 {
 public:
 	typedef typename StreamHeadTrait::Integer Integer;
-	WriteStream();//Automatically allocate memory
-	WriteStream(char * pAttachData, Integer attachDataLen);// attach exist memory
+	//! maxStreamLen : The maximum length can be written.
+	//! bNoWrite : if true then WriteStream will not do any write operation.
+	//! pAttachData : Attach to the existing memory.
+	WriteStream(Integer maxStreamLen = StreamHeadTrait::MaxPackLen, bool bNoWrite = false);//Automatically allocate memory
+	WriteStream(char * pAttachData, Integer maxStreamLen, bool bNoWrite = false);// attach exist memory
 	~WriteStream(){}
 public:
-	//copy head memory to packHead
-	inline void GetPackHead(char *packHead/*[StreamHeadTrait::HeadLen]*/);
-	//write one binary data
-	inline WriteStream<StreamHeadTrait> & WriteContentData(const void * data, Integer unit);
-	//get current wrote in stream buff, the pointer used by reflecting immediately.
-	inline char* GetWriteStream();
-	//get current wrote in stream total length.
-	inline Integer GetWriteLen(){return m_cursor;}
+	//get head memory to packHead
+	inline void GetStreamHead(char *streamHead/*[StreamHeadTrait::HeadLen]*/);
+	//fill head memory from packHead
+	inline void SetStreamHead(const char *streamHead/*[StreamHeadTrait::HeadLen]*/);
+
+	//get total stream buff, the pointer must be used immediately.
+	inline char* GetStream();
+	//get total stream length.
+	inline Integer GetStreamLen(){return m_cursor;}
+
+	//get body stream buff, the pointer used by reflecting immediately.
+	inline char* GetBodyStream();
+	//get body stream length.
+	inline Integer GetBodyStreamLen(){ return m_cursor - StreamHeadTrait::HeadLen; }
+
+	//write original data.
+	inline WriteStream<StreamHeadTrait> & AppendOriginalData(const void * data, Integer unit);
+
 
 	inline WriteStream<StreamHeadTrait> & operator << (bool data) { return WriteSimpleData(data); }
 	inline WriteStream<StreamHeadTrait> & operator << (char data) { return WriteSimpleData(data); }
@@ -199,17 +215,25 @@ public:
 	inline WriteStream<StreamHeadTrait> & operator << (double data) { return WriteSimpleData(data); }
 
 protected:
-	inline void CheckMoveCursor(Integer unit);
+	//! check move cursor is valid. if invalid then throw exception.
+	inline void CheckMoveCursor(Integer unit = (Integer)0);
+
+	//! fix pack len.
 	inline void FixPackLen();
+
+	//! write integer data with endian type.
 	template <class T>
 	inline WriteStream<StreamHeadTrait> & WriteIntegerData(T t);
+
+	//! write some types of data with out endian type. It's relative to WriteIntegerData method.
 	template <class T>
 	inline WriteStream<StreamHeadTrait> & WriteSimpleData(T t);
 private:
-	std::basic_string<char, std::char_traits<char>, _Alloc > m_data;
-	char * m_pAttachData;
-	Integer m_maxDataLen;
-	Integer m_cursor;
+	std::basic_string<char, std::char_traits<char>, _Alloc > m_data; //! If not attach any memory, class WriteStream will used this to managing memory.
+	char * m_pAttachData;//! attach memory pointer
+	Integer m_maxStreamLen; //! can write max size
+	Integer m_cursor; //! current move cursor.
+	bool  m_bNoWrite; //! if true then WriteStream will not do any write operation.
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -217,20 +241,37 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 //StreamHeadTrait: User-Defined like DefaultStreamHeadTrait
-template<class StreamHeadTrait=DefaultStreamHeadTrait>
+template<class StreamHeadTrait/*=DefaultStreamHeadTraits*/>
 class ReadStream
 {
 public:
 	typedef typename StreamHeadTrait::Integer Integer;
 	ReadStream(const char *pAttachData, Integer attachDataLen);
 	~ReadStream(){}
-
-
 public:
-	inline const char * PeekContentData(Integer unit);
-	inline void SkipContentData(Integer unit);
-	inline ReadStream<StreamHeadTrait> & ReadContentData(char * data, Integer unit);
-	inline Integer GetReadLen(){return m_cursor;}
+	//get head memory to packHead
+	inline void GetStreamHead(char *streamHead/*[StreamHeadTrait::HeadLen]*/);
+	inline Integer GetStreamHeadLen(){ return StreamHeadTrait::HeadLen; };
+
+	//get attach data buff
+	inline const char* GetStream();
+	//get pack length in stream
+	inline Integer GetStreamLen();
+
+	//get body stream buff, the pointer used by reflecting immediately.
+	inline const char* GetStreamBody();
+	//get body stream length.
+	inline Integer GetStreamBodyLen();
+
+	//get current unread stream buff, the pointer used by reflecting immediately.
+	inline const char* GetStreamUnread();
+	//get current unread stream buff length
+	inline Integer GetStreamUnreadLen();
+
+
+	inline const char * PeekOriginalData(Integer unit);
+	inline void SkipOriginalData(Integer unit);
+
 
 	inline ReadStream<StreamHeadTrait> & operator >> (bool & data) { return ReadSimpleData(data); }
 	inline ReadStream<StreamHeadTrait> & operator >> (char & data) { return ReadSimpleData(data); }
@@ -247,8 +288,6 @@ public:
 	inline ReadStream<StreamHeadTrait> & operator >> (double & data) { return ReadSimpleData(data); }
 protected:
 	inline void CheckMoveCursor(Integer unit);
-	inline void MoveCursor(Integer unit){m_cursor += unit;}
-	inline Integer GetCursor(){return m_cursor;}
 	template <class T>
 	inline ReadStream<StreamHeadTrait> & ReadIntegerData(T & t);
 	template <class T>
@@ -271,7 +310,7 @@ inline WriteStream<StreamHeadTrait> & operator << (WriteStream<StreamHeadTrait> 
 {
 	typename StreamHeadTrait::Integer len = (typename StreamHeadTrait::Integer)strlen(data);
 	ws << len;
-	ws.WriteContentData(data, len);
+	ws.AppendOriginalData(data, len);
 	return ws;
 }
 
@@ -281,7 +320,7 @@ inline WriteStream<StreamHeadTrait> & operator << (WriteStream<StreamHeadTrait> 
 {
 	typename StreamHeadTrait::Integer len = (typename StreamHeadTrait::Integer)data.length();
 	ws << len;
-	ws.WriteContentData(data.c_str(), len);
+	ws.AppendOriginalData(data.c_str(), len);
 	return ws;
 }
 //read std::string
@@ -290,8 +329,8 @@ inline ReadStream<StreamHeadTrait> & operator >> (ReadStream<StreamHeadTrait> & 
 {
 	typename StreamHeadTrait::Integer len = 0;
 	rs >> len;
-	data.assign(rs.PeekContentData(len), len);
-	rs.SkipContentData(len);
+	data.assign(rs.PeekOriginalData(len), len);
+	rs.SkipOriginalData(len);
 	return rs;
 }
 
@@ -588,7 +627,7 @@ inline std::pair<bool, typename StreamHeadTrait::Integer> CheckBuffIntegrity(con
 	}
 	if (packLen < curBuffLen)
 	{
-		return std::make_pair(false, curBuffLen);;
+		return std::make_pair(true, 0);
 	}
 	return std::make_pair(true, packLen - curBuffLen);
 }
@@ -598,68 +637,70 @@ inline std::pair<bool, typename StreamHeadTrait::Integer> CheckBuffIntegrity(con
 //////////////////////////////////////////////////////////////////////////
 
 template<class StreamHeadTrait, class AllocType>
-WriteStream<StreamHeadTrait, AllocType>::WriteStream()
+WriteStream<StreamHeadTrait, AllocType>::WriteStream(Integer maxStreamLen, bool bNoWrite)
 {
-	m_data.resize((size_t)StreamHeadTrait::HeadLen, '\0');
 	m_pAttachData = NULL;
-	m_maxDataLen = StreamHeadTrait::MaxPackLen;
+	m_maxStreamLen = maxStreamLen;
 	m_cursor = StreamHeadTrait::HeadLen;
+	m_bNoWrite = bNoWrite;
+	Integer reserveSize = sizeof(Integer) == 1 ? 255 : 1024;
+	if (reserveSize < StreamHeadTrait::HeadLen)
+	{
+		reserveSize = StreamHeadTrait::HeadLen;
+	}
+	if (!m_bNoWrite)
+	{
+		m_data.reserve(reserveSize);
+		m_data.resize((size_t)StreamHeadTrait::HeadLen, '\0');
+	}
 }
+
 template<class StreamHeadTrait, class AllocType>
-WriteStream<StreamHeadTrait, AllocType>::WriteStream(char * pAttachData, Integer attachDataLen)
+WriteStream<StreamHeadTrait, AllocType>::WriteStream(char * pAttachData, Integer maxStreamLen, bool bNoWrite)
 {
 	m_pAttachData = pAttachData;
-	m_maxDataLen = attachDataLen;
-	if (m_maxDataLen >  StreamHeadTrait::MaxPackLen)
-	{
-		m_maxDataLen = StreamHeadTrait::MaxPackLen;
-	}
+	m_maxStreamLen = maxStreamLen;
 	m_cursor = StreamHeadTrait::HeadLen;
-}
-
-
-template<class StreamHeadTrait, class AllocType> template <class T> 
-inline WriteStream<StreamHeadTrait> & WriteStream<StreamHeadTrait, AllocType>::WriteIntegerData(T t)
-{
-	Integer unit = sizeof(T);
-	CheckMoveCursor(unit);
-	if (m_pAttachData)
+	m_bNoWrite = bNoWrite;
+	if (!m_bNoWrite)
 	{
-		IntegerToStream<T, StreamHeadTrait>(t, &m_pAttachData[m_cursor]);
-	}
-	else
-	{
-		m_data.append((const char*)&t, unit);
-		if (StreamHeadTrait::EndianType != __LocalEndianType())
+		if (m_maxStreamLen < StreamHeadTrait::HeadLen)
 		{
-			IntegerToStream<T, StreamHeadTrait>(t, &m_data[m_cursor]);
+			m_pAttachData = NULL;
+			m_data.resize((size_t)StreamHeadTrait::HeadLen, '\0');
 		}
 	}
-
-	m_cursor += unit;
-	FixPackLen();
-	return * this;
 }
-template<class StreamHeadTrait, class AllocType> 
+
+template<class StreamHeadTrait, class AllocType>
 inline void WriteStream<StreamHeadTrait, AllocType>::CheckMoveCursor(Integer unit)
 {
-	if (m_cursor >= m_maxDataLen)
+	if (m_maxStreamLen < StreamHeadTrait::HeadLen)
+	{
+		throw std::runtime_error("construction param error. attach memory size less than StreamHeadTrait::HeadLen.");
+	}
+	if (m_cursor > m_maxStreamLen)
 	{
 		throw std::runtime_error("bound over. cursor in end-of-data.");
 	}
-	if (unit > m_maxDataLen)
+	if (unit > m_maxStreamLen)
 	{
 		throw std::runtime_error("bound over. new unit be discarded.");
 	}
-	if (m_maxDataLen - m_cursor < unit)
+	if (m_maxStreamLen - m_cursor < unit)
 	{
 		throw std::runtime_error("bound over. new unit be discarded.");
 	}
 }
+
 template<class StreamHeadTrait, class AllocType>
 inline void WriteStream<StreamHeadTrait, AllocType>::FixPackLen()
 {
-	Integer packLen =m_cursor;
+	if (m_bNoWrite)
+	{
+		return;
+	}
+	Integer packLen = m_cursor;
 	if (!StreamHeadTrait::PackLenIsContainHead)
 	{
 		packLen -= StreamHeadTrait::HeadLen;
@@ -673,56 +714,47 @@ inline void WriteStream<StreamHeadTrait, AllocType>::FixPackLen()
 		IntegerToStream<Integer, StreamHeadTrait>(packLen, &m_data[StreamHeadTrait::PreOffset]);
 	}
 }
-
-template<class StreamHeadTrait, class AllocType> template <class T>
-inline WriteStream<StreamHeadTrait> & WriteStream<StreamHeadTrait, AllocType>::WriteSimpleData(T t)
+template<class StreamHeadTrait, class AllocType>
+inline void WriteStream<StreamHeadTrait, AllocType>::GetStreamHead(char *streamHead)
 {
-	Integer unit = sizeof(T);
-	CheckMoveCursor(unit);
+	if (m_bNoWrite)
+	{
+		return;
+	}
 	if (m_pAttachData)
 	{
-		memcpy(&m_pAttachData[m_cursor], &t, unit);
+		memcpy(streamHead, m_pAttachData, StreamHeadTrait::HeadLen);
 	}
 	else
 	{
-		m_data.append((const char*)&t, unit);
+		memcpy(streamHead, &m_data[0], StreamHeadTrait::HeadLen);
 	}
-
-	m_cursor += unit;
+}
+template<class StreamHeadTrait, class AllocType>
+inline void WriteStream<StreamHeadTrait, AllocType>::SetStreamHead(const char *streamHead)
+{
+	if (m_bNoWrite)
+	{
+		return;
+	}
+	if (m_pAttachData)
+	{
+		memcpy(m_pAttachData, streamHead, StreamHeadTrait::HeadLen);
+	}
+	else
+	{
+		memcpy(&m_data[0], streamHead, StreamHeadTrait::HeadLen);
+	}
 	FixPackLen();
-	return * this;
 }
+
 template<class StreamHeadTrait, class AllocType>
-inline void WriteStream<StreamHeadTrait, AllocType>::GetPackHead(char *packHead)
+inline char* WriteStream<StreamHeadTrait, AllocType>::GetStream()
 {
-	if (m_pAttachData)
+	if (m_bNoWrite)
 	{
-		memcpy(packHead, m_pAttachData, StreamHeadTrait::HeadLen);
+		return NULL;
 	}
-	else
-	{
-		memcpy(packHead, &m_data[0], StreamHeadTrait::HeadLen);
-	}
-}
-template<class StreamHeadTrait, class AllocType>
-inline WriteStream<StreamHeadTrait> & WriteStream<StreamHeadTrait, AllocType>::WriteContentData(const void * data, Integer unit)
-{
-	CheckMoveCursor(unit);
-	if (m_pAttachData)
-	{
-		memcpy(&m_pAttachData[m_cursor], data, unit);
-	}
-	else
-	{
-		m_data.append((const char*)data, unit);
-	}
-	m_cursor += unit;
-	FixPackLen();
-	return *this;
-}
-template<class StreamHeadTrait, class AllocType>
-inline char* WriteStream<StreamHeadTrait, AllocType>::GetWriteStream()
-{
 	if (m_pAttachData)
 	{
 		return m_pAttachData;
@@ -733,6 +765,95 @@ inline char* WriteStream<StreamHeadTrait, AllocType>::GetWriteStream()
 	}
 }
 
+template<class StreamHeadTrait, class AllocType>
+inline char* WriteStream<StreamHeadTrait, AllocType>::GetBodyStream()
+{
+	if (m_bNoWrite)
+	{
+		return NULL;
+	}
+	if (m_pAttachData)
+	{
+		return m_pAttachData + StreamHeadTrait::HeadLen;
+	}
+	else
+	{
+		return &m_data[0] + StreamHeadTrait::HeadLen;
+	}
+}
+
+template<class StreamHeadTrait, class AllocType>
+inline WriteStream<StreamHeadTrait> & WriteStream<StreamHeadTrait, AllocType>::AppendOriginalData(const void * data, Integer unit)
+{
+	CheckMoveCursor(unit);
+	if (!m_bNoWrite)
+	{
+		if (m_pAttachData)
+		{
+			memcpy(&m_pAttachData[m_cursor], data, unit);
+		}
+		else
+		{
+			m_data.append((const char*)data, unit);
+		}
+	}
+	m_cursor += unit;
+	FixPackLen();
+	return *this;
+}
+
+template<class StreamHeadTrait, class AllocType> template <class T> 
+inline WriteStream<StreamHeadTrait> & WriteStream<StreamHeadTrait, AllocType>::WriteIntegerData(T t)
+{
+	Integer unit = sizeof(T);
+	CheckMoveCursor(unit);
+	if (!m_bNoWrite)
+	{
+		if (m_pAttachData)
+		{
+			IntegerToStream<T, StreamHeadTrait>(t, &m_pAttachData[m_cursor]);
+		}
+		else
+		{
+			m_data.append((const char*)&t, unit);
+			if (StreamHeadTrait::EndianType != __LocalEndianType())
+			{
+				IntegerToStream<T, StreamHeadTrait>(t, &m_data[m_cursor]);
+			}
+		}
+	}
+	m_cursor += unit;
+	FixPackLen();
+	return * this;
+}
+
+
+template<class StreamHeadTrait, class AllocType> template <class T>
+inline WriteStream<StreamHeadTrait> & WriteStream<StreamHeadTrait, AllocType>::WriteSimpleData(T t)
+{
+	Integer unit = sizeof(T);
+	CheckMoveCursor(unit);
+	if (!m_bNoWrite)
+	{
+		if (m_pAttachData)
+		{
+			memcpy(&m_pAttachData[m_cursor], &t, unit);
+		}
+		else
+		{
+			m_data.append((const char*)&t, unit);
+		}
+	}
+
+	m_cursor += unit;
+	FixPackLen();
+	return * this;
+}
+
+
+
+
+
 
 //////////////////////////////////////////////////////////////////////////
 //! implement 
@@ -742,11 +863,15 @@ ReadStream<StreamHeadTrait>::ReadStream(const char *pAttachData, Integer attachD
 {
 	m_pAttachData = pAttachData;
 	m_maxDataLen = attachDataLen;
+	m_cursor = StreamHeadTrait::HeadLen;
 	if (m_maxDataLen > StreamHeadTrait::MaxPackLen)
 	{
 		m_maxDataLen = StreamHeadTrait::MaxPackLen;
 	}
-	m_cursor = StreamHeadTrait::HeadLen;
+	if (m_maxDataLen < StreamHeadTrait::HeadLen)
+	{
+		m_pAttachData = NULL;
+	}
 }
 template<class StreamHeadTrait>
 inline void ReadStream<StreamHeadTrait>::CheckMoveCursor(Integer unit)
@@ -764,6 +889,56 @@ inline void ReadStream<StreamHeadTrait>::CheckMoveCursor(Integer unit)
 		throw std::runtime_error("bound over. new unit be discarded.");
 	}
 }
+template<class StreamHeadTrait>
+inline void ReadStream<StreamHeadTrait>::GetStreamHead(char *streamHead)
+{
+	memcpy(streamHead, m_pAttachData, StreamHeadTrait::HeadLen);
+}
+
+template<class StreamHeadTrait>
+inline const char* ReadStream<StreamHeadTrait>::GetStream()
+{
+	return m_pAttachData;
+}
+
+template<class StreamHeadTrait>
+inline typename ReadStream<StreamHeadTrait>::Integer ReadStream<StreamHeadTrait>::GetStreamLen()
+{
+	Integer packLen = StreamToInteger<Integer, StreamHeadTrait>(&m_pAttachData[StreamHeadTrait::PreOffset]);
+	if (!StreamHeadTrait::PackLenIsContainHead)
+	{
+		return packLen + StreamHeadTrait::HeadLen;
+	}
+	if (packLen > m_maxDataLen)
+	{
+		return 0;
+	}
+	return packLen;
+}
+
+template<class StreamHeadTrait>
+inline const char* ReadStream<StreamHeadTrait>::GetStreamBody()
+{
+	return &m_pAttachData[StreamHeadTrait::HeadLen];
+}
+
+template<class StreamHeadTrait>
+inline typename ReadStream<StreamHeadTrait>::Integer ReadStream<StreamHeadTrait>::GetStreamBodyLen()
+{
+	return GetStreamLen() - StreamHeadTrait::HeadLen;
+}
+
+template<class StreamHeadTrait>
+inline const char* ReadStream<StreamHeadTrait>::GetStreamUnread()
+{
+	return &m_pAttachData[m_cursor];
+}
+
+template<class StreamHeadTrait>
+typename ReadStream<StreamHeadTrait>::Integer ReadStream<StreamHeadTrait>::GetStreamUnreadLen()
+{
+	return GetStreamBodyLen() + StreamHeadTrait::HeadLen - m_cursor;
+}
 
 template<class StreamHeadTrait> template <class T>
 inline ReadStream<StreamHeadTrait> & ReadStream<StreamHeadTrait>::ReadIntegerData(T & t)
@@ -771,7 +946,7 @@ inline ReadStream<StreamHeadTrait> & ReadStream<StreamHeadTrait>::ReadIntegerDat
 	Integer unit = sizeof(T);
 	CheckMoveCursor(unit);
 	t = StreamToInteger<T, StreamHeadTrait>(&m_pAttachData[m_cursor]);
-	MoveCursor(unit);
+	m_cursor += unit;
 	return * this;
 }
 template<class StreamHeadTrait> template <class T>
@@ -780,28 +955,22 @@ inline ReadStream<StreamHeadTrait> & ReadStream<StreamHeadTrait>::ReadSimpleData
 	Integer unit = sizeof(T);
 	CheckMoveCursor(unit);
 	memcpy(&t, &m_pAttachData[m_cursor], unit);
-	MoveCursor(unit);
+	m_cursor += unit;
 	return * this;
 }
 template<class StreamHeadTrait>
-inline const char * ReadStream<StreamHeadTrait>::PeekContentData(Integer unit)
+inline const char * ReadStream<StreamHeadTrait>::PeekOriginalData(Integer unit)
 {
 	CheckMoveCursor(unit);
 	return &m_pAttachData[m_cursor];
 }
 template<class StreamHeadTrait>
-inline void ReadStream<StreamHeadTrait>::SkipContentData(Integer unit)
+inline void ReadStream<StreamHeadTrait>::SkipOriginalData(Integer unit)
 {
 	CheckMoveCursor(unit);
-	MoveCursor(unit);
+	m_cursor += unit;
 }
-template<class StreamHeadTrait>
-inline ReadStream<StreamHeadTrait> & ReadStream<StreamHeadTrait>::ReadContentData(char * data, Integer unit)
-{
-	memcpy(data, &m_pAttachData[m_cursor], unit);
-	MoveCursor(unit);
-	return *this;
-}
+
 
 
 #ifndef _ZSUMMER_END

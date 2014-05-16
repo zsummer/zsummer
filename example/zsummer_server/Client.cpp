@@ -65,7 +65,7 @@ bool CClient::OnRecv(unsigned int nRecvedLen)
 	m_curRecvLen += nRecvedLen;
 	
 
-	std::pair<bool, zsummer::protocol4z::DefaultStreamHeadTrait::Integer> ret = zsummer::protocol4z::CheckBuffIntegrity<zsummer::protocol4z::DefaultStreamHeadTrait>(m_recving._orgdata, m_curRecvLen, _MSG_BUF_LEN);
+	std::pair<bool, zsummer::protocol4z::DefaultStreamHeadTraits::Integer> ret = zsummer::protocol4z::CheckBuffIntegrity<zsummer::protocol4z::DefaultStreamHeadTraits>(m_recving._orgdata, m_curRecvLen, _MSG_BUF_LEN);
 	int needRecv = ret.second;
 	if ( !ret.first)
 	{
@@ -80,7 +80,7 @@ bool CClient::OnRecv(unsigned int nRecvedLen)
 	}
 
 	//! 解包完成 进行消息处理
-	zsummer::protocol4z::ReadStream<> rs(m_recving._orgdata, m_curRecvLen);
+	zsummer::protocol4z::ReadStream<zsummer::protocol4z::DefaultStreamHeadTraits> rs(m_recving._orgdata, m_curRecvLen);
 	try
 	{
 		MessageEntry(rs);
@@ -100,7 +100,7 @@ bool CClient::OnRecv(unsigned int nRecvedLen)
 	m_socket->DoRecv(m_recving._orgdata, 2);
 	return true;
 }
-void CClient::MessageEntry(zsummer::protocol4z::ReadStream<> & rs)
+void CClient::MessageEntry(zsummer::protocol4z::ReadStream<zsummer::protocol4z::DefaultStreamHeadTraits> & rs)
 {
 	//协议流异常会被上层捕获并关闭连接
 	unsigned short protocolID = 0;
@@ -113,9 +113,9 @@ void CClient::MessageEntry(zsummer::protocol4z::ReadStream<> & rs)
 			m_textCache.clear();
 			rs >> clientTick >> m_textCache;
 			char buf[_MSG_BUF_LEN];
-			zsummer::protocol4z::WriteStream<> ws(buf, _MSG_BUF_LEN);
+			zsummer::protocol4z::WriteStream<zsummer::protocol4z::DefaultStreamHeadTraits> ws(buf, _MSG_BUF_LEN);
 			ws << protocolID << clientTick << m_textCache;
-			Send(buf, ws.GetWriteLen());
+			Send(buf, ws.GetStreamLen());
 		}
 		break;
 	default:

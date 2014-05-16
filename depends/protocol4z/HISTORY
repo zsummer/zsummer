@@ -10,6 +10,8 @@ HISTORY for Protocol4z
  *  support user-defined header
  *  WriteStream support auto alloc memory or attach exist memory
  *  protocol4z support stl container
+ * VERSION 0.4.0 <DATE: 2014.05.16>
+ *  Add some useful interface method
  * 
  */
    
