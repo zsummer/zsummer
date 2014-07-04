@@ -643,7 +643,7 @@ WriteStream<StreamHeadTrait, AllocType>::WriteStream(Integer maxStreamLen, bool 
 	m_maxStreamLen = maxStreamLen;
 	m_cursor = StreamHeadTrait::HeadLen;
 	m_bNoWrite = bNoWrite;
-	Integer reserveSize = sizeof(Integer) == 1 ? 255 : 1024;
+	Integer reserveSize = sizeof(Integer) == 1 ? 255 : 1200;
 	if (reserveSize < StreamHeadTrait::HeadLen)
 	{
 		reserveSize = StreamHeadTrait::HeadLen;
