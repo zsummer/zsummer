@@ -99,17 +99,16 @@ public:
 	virtual bool OnRecv(unsigned int nRecvedLen)
 	{
 		m_curRecvLen += nRecvedLen;
-		std::pair<bool, zsummer::protocol4z::DefaultStreamHeadTraits::Integer> ret= zsummer::protocol4z::CheckBuffIntegrity<zsummer::protocol4z::DefaultStreamHeadTraits>(m_recving._orgdata, m_curRecvLen, _MSG_BUF_LEN);
-		int needRecv = ret.second;
-		if (!ret.first)
+		std::pair<zsummer::protocol4z::INTEGRITY_RET_TYPE, zsummer::protocol4z::DefaultStreamHeadTraits::Integer> ret= zsummer::protocol4z::CheckBuffIntegrity<zsummer::protocol4z::DefaultStreamHeadTraits>(m_recving._orgdata, m_curRecvLen, _MSG_BUF_LEN);
+		if (ret.first == zsummer::protocol4z::IRT_CORRUPTION)
 		{
 			LOGE("killed socket: CheckBuffIntegrity error ");
 			m_socket->Close();
 			return false;
 		}
-		if (needRecv > 0)
+		if (ret.first == zsummer::protocol4z::IRT_SHORTAGE)
 		{
-			m_socket->DoRecv(m_recving._orgdata+m_curRecvLen, needRecv);
+			m_socket->DoRecv(m_recving._orgdata+m_curRecvLen, ret.second);
 			return true;
 		}
 
