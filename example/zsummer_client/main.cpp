@@ -391,7 +391,7 @@ int main(int argc, char* argv[])
 	//! 启动日志服务
 	zsummer::log4z::ILog4zManager::GetInstance()->Config("client.cfg");
 	zsummer::log4z::ILog4zManager::GetInstance()->Start();
-	g_fillString.resize(1000, 'z');
+	g_fillString.resize(200, 'z');
 	g_totalEcho = 0;
 	g_totalEchoTime = 0;
 	g_lastEcho = 0;
